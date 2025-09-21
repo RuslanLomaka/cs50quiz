@@ -1,0 +1,108 @@
+/* ===== General layout ===== */
+body {
+    padding-bottom: 50px;
+    font-family: Arial, sans-serif;
+}
+
+#compose-form .form-group {
+    margin-bottom: 12px;
+}
+
+/* ===== Email rows ===== */
+.email-row {
+    border: 1px solid #ddd;
+    padding: 8px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+}
+.email-row.unread { background: #e4e4e4; }
+.email-row.read { background: #ffffff; }
+
+/* ===== Action buttons ===== */
+.email-actions button {
+    margin-left: 5px;
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    min-width: 100px;
+    text-align: center;
+}
+.email-actions button:hover {
+    background: #eee;
+}
+
+/* Reply button */
+.reply-btn {
+    margin-top: 10px;
+    padding: 4px 8px;
+    border: 1px solid #007bff;
+    background: #fff;
+    color: #007bff;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.reply-btn:hover {
+    background: #007bff;
+    color: #fff;
+}
+
+#compose-body {
+    min-height: 250px;
+}
+
+/* ===== Navigation bar ===== */
+.nav-bar {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.nav-left { display: flex; gap: 5px; }
+.spacer { flex-grow: 1; }
+.nav-right { display: flex; }
+
+nav button.active {
+    background: #007bff;
+    color: #fff;
+    border-color: #007bff;
+}
+nav button:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+/* ===== Empty mailbox ===== */
+.empty-msg {
+    font-style: italic;
+    color: #666;
+    margin-top: 10px;
+}
+
+/* ===== Single email detail ===== */
+.email-body {
+    white-space: pre-wrap;
+    font-family: inherit;
+}
+
+/* ===== Fade animation ===== */
+@keyframes fadeOutSmooth {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+.email-row.fade-out {
+    animation: fadeOutSmooth 0.3s ease forwards;
+}
+
+@keyframes fadeInSmooth {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+.email-row.fade-in {
+    animation: fadeInSmooth 0.3s ease forwards;
+}
