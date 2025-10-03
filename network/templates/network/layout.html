@@ -29,6 +29,19 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'logout' %}">Log Out</a>
                     </li>
+
+                  <li class="nav-item">
+                      <a class="nav-link" href="{% url 'my_posts' %}">My Posts</a>
+                  </li>
+                  <li class="nav-item">
+                      <a class="nav-link" href="{% url 'liked_posts' %}">Liked Posts</a>
+                  </li>
+                  <li class="nav-item">
+                      <a class="nav-link" href="{% url 'feed_posts' %}">Following Feed</a>
+                  </li>
+                  <li class="nav-item">
+                      <a class="nav-link" href="{% url 'new_post' %}">New Post</a>
+                  </li>
                 {% else %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'login' %}">Log In</a>

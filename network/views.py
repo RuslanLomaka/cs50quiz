@@ -1,14 +1,38 @@
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.urls import reverse
 
-from .models import User
+from .models import User, Post
 
 
 def index(request):
     return render(request, "network/index.html")
+
+
+def post_list(request, mode="all"):
+    if mode == "my":
+        posts = Post.objects.filter(author=request.user).order_by('-created_at')
+    elif mode == "liked":
+        posts = request.user.liked_posts.all().order_by('-created_at')
+    elif mode == "feed":
+        posts = Post.objects.filter(author__in=request.user.following.all()).order_by('-created_at')
+    else:  # "all"
+        posts = Post.objects.all()
+
+    return render(request, "network/post_list.html", {
+        "posts": posts,
+        "mode": mode
+    })
+
+def new_post(request):
+    if request.method == "POST":
+        content = request.POST.get("content")
+        if content.strip():
+            Post.objects.create(author=request.user, content=content)
+            return redirect("all_posts")
+    return render(request, "network/compose_post.html")
 
 
 def login_view(request):

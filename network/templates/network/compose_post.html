@@ -1,0 +1,15 @@
+{% extends "network/layout.html" %}
+{% block body %}
+
+<div id="compose-view">
+    <h3>New Post</h3>
+    <form method="post" id="compose-form">
+        {% csrf_token %}
+        <div class="form-group">
+            <textarea name="content" class="form-control" rows="4" placeholder="What's on your mind?"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Post</button>
+    </form>
+</div>
+
+{% endblock %}

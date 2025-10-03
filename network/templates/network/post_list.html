@@ -1,0 +1,22 @@
+{% extends "network/layout.html" %}
+
+{% block body %}
+<h2>
+    {% if mode == "my" %}My Posts{% endif %}
+    {% if mode == "liked" %}Liked Posts{% endif %}
+    {% if mode == "feed" %}Following Feed{% endif %}
+    {% if mode == "all" %}All Posts{% endif %}
+</h2>
+
+<ul>
+    {% for post in posts %}
+    <li>
+        <strong>{{ post.author.username }}</strong><br>
+        {{ post.content }}<br>
+        <small>{{ post.created_at }}</small>
+    </li>
+    {% empty %}
+    <li>No posts yet.</li>
+    {% endfor %}
+</ul>
+{% endblock %}
