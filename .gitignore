@@ -1,3 +1,15 @@
 .idea
 .venv
 .venv1
+# Django
+db.sqlite3
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# System
+*.DS_Store
