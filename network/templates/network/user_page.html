@@ -1,0 +1,22 @@
+{% extends "network/layout.html" %}
+
+{% block body %}
+<div class="user-box" style="padding: 20px; border: 1px solid #ddd; border-radius: 10px; max-width: 400px;">
+    <h2>{{ profile_user.username }}</h2>
+    <p>{{ followers_count }} followers • {{ following_count }} following</p>
+
+    {% if request.user == profile_user %}
+    <p>This is your profile.</p>
+    {% else %}
+    <form action="" method="post">
+        {% csrf_token %}
+        {% if is_following %}
+        <button type="submit" class="btn btn-secondary">Unfollow</button>
+        {% else %}
+        <button type="submit" class="btn btn-primary">Follow</button>
+        {% endif %}
+    </form>
+    {% endif %}
+</div>
+{% endblock %}
+ q

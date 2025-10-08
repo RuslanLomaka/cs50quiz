@@ -1,0 +1,23 @@
+{% extends "network/layout.html" %}
+
+{% block body %}
+    <h2>Search Users</h2>
+
+    <form method="get" action="{% url 'search' %}">
+        <input type="text" name="q" placeholder="Enter username" value="{{ query }}" autofocus>
+        <button type="submit">Search</button>
+    </form>
+
+    {% if query %}
+        <h3>Results for "{{ query }}"</h3>
+        <ul>
+            {% for u in users %}
+                <li>
+                    <a href="{% url 'user_page' u.id %}">{{ u.username }}</a>
+                </li>
+            {% empty %}
+                <li>No users found</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endblock %}

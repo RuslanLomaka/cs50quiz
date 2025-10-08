@@ -1,7 +1,8 @@
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 
 from .models import User, Post
@@ -33,6 +34,43 @@ def new_post(request):
             Post.objects.create(author=request.user, content=content)
             return redirect("all_posts")
     return render(request, "network/compose_post.html")
+
+
+def search(request):
+    query = request.GET.get("q", "")
+    users = []
+
+    if query:
+        users = User.objects.filter(username__icontains=query)
+
+    return render(request, "network/search.html", {
+        "users": users,
+        "query": query
+    })
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import User
+
+@login_required
+def user_page(request, user_id):
+    profile_user = get_object_or_404(User, pk=user_id)
+    is_following = request.user.follows(profile_user)
+
+    # Handle Follow/Unfollow
+    if request.method == "POST":
+        if is_following:
+            request.user.unfollow(profile_user)
+        else:
+            request.user.follow(profile_user)
+        return redirect("user_page", user_id=user_id)
+
+    return render(request, "network/user_page.html", {
+        "profile_user": profile_user,
+        "is_following": is_following,
+        "followers_count": profile_user.follower_count(),
+        "following_count": profile_user.following_count(),
+    })
 
 
 def login_view(request):
