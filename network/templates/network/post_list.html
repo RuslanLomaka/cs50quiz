@@ -11,12 +11,25 @@
 <ul>
     {% for post in posts %}
     <li>
-        <strong>{{ post.author.username }}</strong><br>
-        {{ post.content }}<br>
-        <small>{{ post.created_at }}</small>
-    </li>
-    {% empty %}
-    <li>No posts yet.</li>
+    <strong>{{ post.author.username }}</strong><br>
+    {{ post.content }}<br>
+    <small>{{ post.created_at }}</small><br>
+
+  <button
+    class="like-btn"
+    data-post-id="{{ post.id }}"
+    data-liked="{{ post.is_liked }}"
+>
+    {% if post.is_liked %}
+        ❤️ Unlike
+    {% else %}
+        🤍 Like
+    {% endif %}
+</button>
+
+<span id="like-count-{{ post.id }}">{{ post.like_count }}</span> likes
+</li>
+
     {% endfor %}
 </ul>
 {% endblock %}

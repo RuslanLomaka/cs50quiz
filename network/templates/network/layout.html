@@ -16,48 +16,50 @@
     <div>
         <ul class="navbar-nav mr-auto">
 
-           {% if user.is_authenticated %}
-                <li class="nav-item">
-                    <a class="nav-link" href="#"><strong>{{ user.username }}</strong></a>
-                </li>
+            {% if user.is_authenticated %}
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'user_page' user.id %}">
+                    <strong>{{ user.username }}</strong>
+                </a>
+            </li>
+
             {% endif %}
 
             {% if user.is_authenticated %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'all_posts' %}">All Posts</a>
-                </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'all_posts' %}">All Posts</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'feed_posts' %}">My Feed</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'my_posts' %}">My Posts</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'liked_posts' %}">Liked Posts</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'feed_posts' %}">Following Feed</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'new_post' %}">New Post</a>
+            </li>
 
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'feed_posts' %}">My Feed</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'my_posts' %}">My Posts</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'liked_posts' %}">Liked Posts</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'feed_posts' %}">Following Feed</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'new_post' %}">New Post</a>
-                </li>
+            <!-- ✅ New link added here -->
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'search' %}">Search</a>
+            </li>
 
-                <!-- ✅ New link added here -->
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'search' %}">Search</a>
-                </li>
-
-                <li class="nav-item-logout">
-                    <a class="nav-link" href="{% url 'logout' %}">Log Out</a>
-                </li>
+            <li class="nav-item-logout">
+                <a class="nav-link" href="{% url 'logout' %}">Log Out</a>
+            </li>
             {% else %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'login' %}">Log In</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'register' %}">Register</a>
-                </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'login' %}">Log In</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'register' %}">Register</a>
+            </li>
             {% endif %}
         </ul>
     </div>
@@ -69,3 +71,50 @@
 </div>
 </body>
 </html>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const buttons = document.querySelectorAll(".like-btn");
+
+    buttons.forEach(btn => {
+        btn.addEventListener("click", async function () {
+            const postId = this.dataset.postId;
+
+            const response = await fetch(`/posts/${postId}/like/`, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": getCookie("csrftoken"),
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.error) return;
+
+            // Update button appearance
+            if (data.liked) {
+                this.innerHTML = "❤️ Unlike";
+            } else {
+                this.innerHTML = "🤍 Like";
+            }
+
+            // Update count
+            document.getElementById(`like-count-${postId}`).innerText = data.like_count;
+        });
+    });
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + "=")) {
+                cookieValue = cookie.substring(name.length + 1);
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>

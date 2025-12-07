@@ -1,11 +1,11 @@
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
-from django.db.models import Q
-from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponseRedirect
 from django.urls import reverse
-
-from .models import User, Post
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from .models import Post
 
 
 def index(request):
@@ -22,10 +22,27 @@ def post_list(request, mode="all"):
     else:  # "all"
         posts = Post.objects.all()
 
+    for p in posts:
+        p.is_liked = p.is_liked_by(request.user)
     return render(request, "network/post_list.html", {
         "posts": posts,
         "mode": mode
     })
+
+
+@login_required
+def like_post(request, post_id):
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid method"}, status=400)
+
+    post = get_object_or_404(Post, pk=post_id)
+    post.toggle_like(request.user)
+
+    return JsonResponse({
+        "liked": post.is_liked_by(request.user),
+        "like_count": post.like_count(),
+    })
+
 
 def new_post(request):
     if request.method == "POST":
@@ -48,9 +65,11 @@ def search(request):
         "query": query
     })
 
+
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import User
+
 
 @login_required
 def user_page(request, user_id):
