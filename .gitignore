@@ -1,6 +1,4 @@
 .idea
-.venv
-.venv1
 # Django
 db.sqlite3
 *.log
@@ -13,3 +11,6 @@ __pycache__/
 
 # System
 *.DS_Store
+
+# Migrations
+ network/migrations
