@@ -8,28 +8,84 @@
     {% if mode == "all" %}All Posts{% endif %}
 </h2>
 
-<ul>
+<ul class="list-unstyled">
     {% for post in posts %}
-    <li>
-    <strong>{{ post.author.username }}</strong><br>
-    {{ post.content }}<br>
-    <small>{{ post.created_at }}</small><br>
+        <li class="post-card">
+            <strong class="post-author">
+                <a href="{% url 'user_page' post.author.id %}">
+                    {{ post.author.username }}
+                </a>
+            </strong>
+            <br>
 
-  <button
-    class="like-btn"
-    data-post-id="{{ post.id }}"
-    data-liked="{{ post.is_liked }}"
->
-    {% if post.is_liked %}
-        ❤️ Unlike
-    {% else %}
-        🤍 Like
-    {% endif %}
-</button>
+            {# content container used by JS for inline editing #}
+            <div id="post-content-{{ post.id }}" class="post-content">
+                {{ post.content }}
+            </div>
 
-<span id="like-count-{{ post.id }}">{{ post.like_count }}</span> likes
-</li>
+            <small id="post-date-{{ post.id }}" class="post-date">
+                {{ post.created_at }}
+            </small>
+            <br>
 
+            {# Edit only if current user is the author #}
+            {% if post.author == user %}
+                <button
+                    type="button"
+                    class="edit-btn btn btn-sm mt-1"
+                    data-post-id="{{ post.id }}"
+                >
+                    Edit
+                </button>
+            {% endif %}
+
+            <button
+                type="button"
+                class="like-btn btn btn-sm mt-1"
+                data-post-id="{{ post.id }}"
+            >
+                {% if post.is_liked %}
+                    ❤️ Unlike
+                {% else %}
+                    🤍 Like
+                {% endif %}
+            </button>
+
+            <span id="like-count-{{ post.id }}">
+                {{ post.like_count }}
+            </span> likes
+        </li>
+    {% empty %}
+        <li>No posts yet.</li>
     {% endfor %}
 </ul>
+
+{# Pagination controls #}
+{% if posts.paginator.num_pages > 1 %}
+<nav aria-label="Post pages">
+    <ul class="pagination">
+        {% if posts.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="{{ request.path }}?page={{ posts.previous_page_number }}">
+                    Previous
+                </a>
+            </li>
+        {% endif %}
+
+        <li class="page-item disabled">
+            <span class="page-link">
+                Page {{ posts.number }} of {{ posts.paginator.num_pages }}
+            </span>
+        </li>
+
+        {% if posts.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ request.path }}?page={{ posts.next_page_number }}">
+                    Next
+                </a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 {% endblock %}

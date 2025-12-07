@@ -4,14 +4,16 @@
 <html lang="en">
 <head>
     <title>{% block title %}Social Network{% endblock %}</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
-          integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
-    <link href="{% static 'network/styles.css' %}" rel="stylesheet">
+    <link rel="stylesheet"
+          href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+          integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
+          crossorigin="anonymous">
+    <link href="/static/network/styles.css" rel="stylesheet">
 </head>
 <body>
 
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <a class="navbar-brand" href="#">Network</a>
+    <a class="navbar-brand" href="{% url 'index' %}">Network</a>
 
     <div>
         <ul class="navbar-nav mr-auto">
@@ -22,7 +24,6 @@
                     <strong>{{ user.username }}</strong>
                 </a>
             </li>
-
             {% endif %}
 
             {% if user.is_authenticated %}
@@ -30,7 +31,7 @@
                 <a class="nav-link" href="{% url 'all_posts' %}">All Posts</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{% url 'feed_posts' %}">My Feed</a>
+                <a class="nav-link" href="{% url 'feed_posts' %}">Following</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="{% url 'my_posts' %}">My Posts</a>
@@ -39,17 +40,11 @@
                 <a class="nav-link" href="{% url 'liked_posts' %}">Liked Posts</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{% url 'feed_posts' %}">Following Feed</a>
-            </li>
-            <li class="nav-item">
                 <a class="nav-link" href="{% url 'new_post' %}">New Post</a>
             </li>
-
-            <!-- ✅ New link added here -->
             <li class="nav-item">
                 <a class="nav-link" href="{% url 'search' %}">Search</a>
             </li>
-
             <li class="nav-item-logout">
                 <a class="nav-link" href="{% url 'logout' %}">Log Out</a>
             </li>
@@ -61,6 +56,7 @@
                 <a class="nav-link" href="{% url 'register' %}">Register</a>
             </li>
             {% endif %}
+
         </ul>
     </div>
 </nav>
@@ -69,52 +65,8 @@
     {% block body %}
     {% endblock %}
 </div>
+
+{# our JS file #}
+<script src="{% static 'network/main.js' %}"></script>
 </body>
 </html>
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const buttons = document.querySelectorAll(".like-btn");
-
-    buttons.forEach(btn => {
-        btn.addEventListener("click", async function () {
-            const postId = this.dataset.postId;
-
-            const response = await fetch(`/posts/${postId}/like/`, {
-                method: "POST",
-                headers: {
-                    "X-CSRFToken": getCookie("csrftoken"),
-                }
-            });
-
-            const data = await response.json();
-
-            if (data.error) return;
-
-            // Update button appearance
-            if (data.liked) {
-                this.innerHTML = "❤️ Unlike";
-            } else {
-                this.innerHTML = "🤍 Like";
-            }
-
-            // Update count
-            document.getElementById(`like-count-${postId}`).innerText = data.like_count;
-        });
-    });
-});
-
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== "") {
-        const cookies = document.cookie.split(";");
-        for (let cookie of cookies) {
-            cookie = cookie.trim();
-            if (cookie.startsWith(name + "=")) {
-                cookieValue = cookie.substring(name.length + 1);
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-</script>
