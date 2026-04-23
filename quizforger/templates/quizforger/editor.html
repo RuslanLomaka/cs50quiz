@@ -1,0 +1,596 @@
+{% extends "quizforger/base.html" %}
+
+{% block title %}Edit quiz | QuizForger{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-xl-10">
+
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h1 class="h3 mb-0">Edit quiz</h1>
+      </div>
+
+      <div class="alert alert-info">
+        <strong>Fine-tune your quiz:</strong>
+        edit the title, questions, answers, and sources directly in the browser, then save your changes.
+      </div>
+
+      <form method="post" class="card shadow-sm editor-shell" id="quizEditorForm">
+        {% csrf_token %}
+        <textarea name="json" id="quizJsonField" class="d-none"></textarea>
+
+        <div class="card-body">
+          <div class="mb-4">
+            <label class="form-label fw-semibold" for="quizTitle">Quiz title</label>
+            <input
+              id="quizTitle"
+              type="text"
+              class="form-control form-control-lg"
+              placeholder="Enter the quiz title"
+            >
+          </div>
+
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+            <div>
+              <div class="fw-semibold">Questions</div>
+              <div class="text-muted small">Adjust each question in its own card.</div>
+            </div>
+            <button type="button" class="btn btn-outline-primary" id="addQuestionBtn">Add question</button>
+          </div>
+
+          <div id="editorError" class="alert alert-danger d-none"></div>
+          <div id="questionsContainer" class="vstack gap-3"></div>
+
+          <div class="d-flex gap-2 mt-4">
+            <button class="btn btn-primary" type="submit">Save changes</button>
+            <a class="btn btn-outline-secondary" href="{% url 'quiz_page' quiz.id %}">Cancel</a>
+          </div>
+        </div>
+      </form>
+
+      {{ json_value|json_script:"initial-quiz-data" }}
+
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const form = document.getElementById("quizEditorForm");
+    const titleInput = document.getElementById("quizTitle");
+    const questionsContainer = document.getElementById("questionsContainer");
+    const addQuestionBtn = document.getElementById("addQuestionBtn");
+    const hiddenJsonField = document.getElementById("quizJsonField");
+    const errorBox = document.getElementById("editorError");
+    const initialDataEl = document.getElementById("initial-quiz-data");
+    let pendingFocusSelector = null;
+
+    function parseInitialQuiz() {
+      if (!initialDataEl || !initialDataEl.textContent.trim()) {
+        return { title: "", questions: [] };
+      }
+
+      try {
+        const raw = JSON.parse(initialDataEl.textContent);
+        if (!raw) return { title: "", questions: [] };
+        if (typeof raw === "string") {
+          return normalizeQuiz(JSON.parse(raw));
+        }
+        return normalizeQuiz(raw);
+      } catch (e) {
+        return { title: "", questions: [] };
+      }
+    }
+
+    function normalizeQuiz(raw) {
+      const quiz = raw && typeof raw === "object" ? raw : {};
+      return {
+        title: typeof quiz.title === "string" ? quiz.title : "",
+        questions: Array.isArray(quiz.questions)
+          ? quiz.questions.map((question, index) => normalizeQuestion(question, index + 1))
+          : [],
+      };
+    }
+
+    function normalizeQuestion(question, fallbackId) {
+      const normalized = question && typeof question === "object" ? question : {};
+      const answers = Array.isArray(normalized.answers) ? normalized.answers : [];
+      const sources = Array.isArray(normalized.sources) ? normalized.sources : [];
+
+      return {
+        id: Number.isInteger(normalized.id) ? normalized.id : fallbackId,
+        question: typeof normalized.question === "string" ? normalized.question : "",
+        answers: answers.length > 0
+          ? answers.map((answer) => ({
+              text: typeof answer?.text === "string" ? answer.text : "",
+              correct: Boolean(answer?.correct),
+            }))
+          : [
+              { text: "", correct: false },
+              { text: "", correct: true },
+            ],
+        sources: sources.map((source) => ({
+          title: typeof source?.title === "string" ? source.title : "",
+          url: typeof source?.url === "string" ? source.url : "",
+          note: typeof source?.note === "string" ? source.note : "",
+        })),
+      };
+    }
+
+    function createAnswer(answer = { text: "", correct: false }) {
+      return {
+        text: answer.text || "",
+        correct: Boolean(answer.correct),
+      };
+    }
+
+    function createSource(source = { title: "", url: "", note: "" }) {
+      return {
+        title: source.title || "",
+        url: source.url || "",
+        note: source.note || "",
+      };
+    }
+
+    const state = parseInitialQuiz();
+    if (!Array.isArray(state.questions) || state.questions.length === 0) {
+      state.questions = [normalizeQuestion({}, 1)];
+    }
+    titleInput.value = state.title;
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function showError(message) {
+      errorBox.textContent = message;
+      errorBox.classList.remove("d-none");
+    }
+
+    function clearError() {
+      errorBox.textContent = "";
+      errorBox.classList.add("d-none");
+    }
+
+    function queueFocus(selector) {
+      pendingFocusSelector = selector;
+    }
+
+    function applyPendingFocus() {
+      if (!pendingFocusSelector) return;
+      const field = document.querySelector(pendingFocusSelector);
+      pendingFocusSelector = null;
+      if (!field) return;
+
+      const card = field.closest("[data-question-card]");
+      const scrollTarget = card || field;
+      scrollTarget.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      setTimeout(() => {
+        field.focus({ preventScroll: true });
+        if (typeof field.select === "function" && (field.tagName === "INPUT" || field.tagName === "TEXTAREA")) {
+          field.select();
+        }
+      }, 120);
+    }
+
+    function render() {
+      questionsContainer.innerHTML = "";
+
+      state.questions.forEach((question, questionIndex) => {
+        const card = document.createElement("div");
+        card.className = "card border-0 shadow-sm question-card";
+        card.dataset.questionCard = String(questionIndex);
+        card.innerHTML = `
+          <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+              <div class="question-header">
+                <span class="question-badge">${questionIndex + 1}</span>
+                <div>
+                  <div class="fw-semibold">Question ${questionIndex + 1}</div>
+                  <div class="question-subtitle">Part of this quiz</div>
+                </div>
+              </div>
+              <button type="button" class="btn btn-outline-danger btn-sm" data-action="remove-question" data-question-index="${questionIndex}">
+                Remove question
+              </button>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Question text</label>
+              <textarea
+                class="form-control"
+                rows="3"
+                data-field="question-text"
+                data-question-index="${questionIndex}"
+                placeholder="Write the question here"
+              >${escapeHtml(question.question)}</textarea>
+            </div>
+
+            <div class="editor-section mb-3">
+              <div class="editor-section-title">
+                <span>Answers</span>
+                <button type="button" class="btn btn-outline-primary btn-sm" data-action="add-answer" data-question-index="${questionIndex}">
+                  Add answer
+                </button>
+              </div>
+              <div class="vstack gap-2">
+                ${question.answers.map((answer, answerIndex) => `
+                  <div class="answer-item p-3">
+                    <div class="row g-2 align-items-center">
+                      <div class="col-md-8">
+                        <label class="form-label small text-muted mb-1">Answer option ${answerIndex + 1}</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          value="${escapeHtml(answer.text)}"
+                          data-field="answer-text"
+                          data-question-index="${questionIndex}"
+                          data-answer-index="${answerIndex}"
+                          placeholder="Answer option"
+                        >
+                      </div>
+                      <div class="col-md-2">
+                        <label class="form-label small text-muted mb-1 d-block">Correct</label>
+                        <div class="form-check mt-2">
+                          <input
+                            class="form-check-input"
+                            type="checkbox"
+                            ${answer.correct ? "checked" : ""}
+                            data-field="answer-correct"
+                            data-question-index="${questionIndex}"
+                            data-answer-index="${answerIndex}"
+                          >
+                        </div>
+                      </div>
+                      <div class="col-md-2 text-md-end">
+                        <label class="form-label small text-muted mb-1 d-block">&nbsp;</label>
+                        <button
+                          type="button"
+                          class="btn btn-outline-danger btn-sm"
+                          data-action="remove-answer"
+                          data-question-index="${questionIndex}"
+                          data-answer-index="${answerIndex}"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+            </div>
+
+            <div class="editor-section">
+              <div class="editor-section-title">
+                <span>Sources</span>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-action="add-source" data-question-index="${questionIndex}">
+                  Add source
+                </button>
+              </div>
+              <div class="vstack gap-2">
+                ${question.sources.length > 0 ? question.sources.map((source, sourceIndex) => `
+                  <div class="source-item p-3">
+                    <div class="row g-2">
+                      <div class="col-md-4">
+                        <label class="form-label small text-muted mb-1">Source title</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          value="${escapeHtml(source.title)}"
+                          data-field="source-title"
+                          data-question-index="${questionIndex}"
+                          data-source-index="${sourceIndex}"
+                          placeholder="NASA"
+                        >
+                      </div>
+                      <div class="col-md-5">
+                        <label class="form-label small text-muted mb-1">Source URL</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          value="${escapeHtml(source.url)}"
+                          data-field="source-url"
+                          data-question-index="${questionIndex}"
+                          data-source-index="${sourceIndex}"
+                          placeholder="https://example.com"
+                        >
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label small text-muted mb-1">Note</label>
+                        <input
+                          type="text"
+                          class="form-control"
+                          value="${escapeHtml(source.note)}"
+                          data-field="source-note"
+                          data-question-index="${questionIndex}"
+                          data-source-index="${sourceIndex}"
+                          placeholder="Optional note"
+                        >
+                      </div>
+                    </div>
+                    <div class="text-end mt-2">
+                      <button
+                        type="button"
+                        class="btn btn-outline-danger btn-sm"
+                        data-action="remove-source"
+                        data-question-index="${questionIndex}"
+                        data-source-index="${sourceIndex}"
+                      >
+                        Remove source
+                      </button>
+                    </div>
+                  </div>
+                `).join("") : '<div class="text-muted small">No sources added for this question.</div>'}
+              </div>
+            </div>
+          </div>
+        `;
+
+        questionsContainer.appendChild(card);
+      });
+
+      applyPendingFocus();
+    }
+
+    function refreshQuestionIds() {
+      state.questions.forEach((question, index) => {
+        question.id = index + 1;
+      });
+    }
+
+    function buildValidationError(message, selector) {
+      const error = new Error(message);
+      error.fieldSelector = selector;
+      return error;
+    }
+
+    function focusValidationError(error) {
+      if (!error?.fieldSelector) return;
+
+      const field = document.querySelector(error.fieldSelector);
+      if (!field) return;
+
+      const card = field.closest("[data-question-card]");
+      const scrollTarget = card || field;
+      scrollTarget.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      setTimeout(() => {
+        field.focus({ preventScroll: true });
+        if (typeof field.select === "function" && (field.tagName === "INPUT" || field.tagName === "TEXTAREA")) {
+          field.select();
+        }
+      }, 150);
+    }
+
+    titleInput.addEventListener("input", clearError);
+
+    questionsContainer.addEventListener("input", (event) => {
+      const target = event.target;
+      const questionIndex = Number(target.dataset.questionIndex);
+      if (Number.isNaN(questionIndex) || !state.questions[questionIndex]) return;
+
+      if (target.dataset.field === "question-text") {
+        state.questions[questionIndex].question = target.value;
+      }
+
+      if (target.dataset.field === "answer-text") {
+        const answerIndex = Number(target.dataset.answerIndex);
+        if (!Number.isNaN(answerIndex) && state.questions[questionIndex].answers[answerIndex]) {
+          state.questions[questionIndex].answers[answerIndex].text = target.value;
+        }
+      }
+
+      if (target.dataset.field === "source-title") {
+        const sourceIndex = Number(target.dataset.sourceIndex);
+        if (!Number.isNaN(sourceIndex) && state.questions[questionIndex].sources[sourceIndex]) {
+          state.questions[questionIndex].sources[sourceIndex].title = target.value;
+        }
+      }
+
+      if (target.dataset.field === "source-url") {
+        const sourceIndex = Number(target.dataset.sourceIndex);
+        if (!Number.isNaN(sourceIndex) && state.questions[questionIndex].sources[sourceIndex]) {
+          state.questions[questionIndex].sources[sourceIndex].url = target.value;
+        }
+      }
+
+      if (target.dataset.field === "source-note") {
+        const sourceIndex = Number(target.dataset.sourceIndex);
+        if (!Number.isNaN(sourceIndex) && state.questions[questionIndex].sources[sourceIndex]) {
+          state.questions[questionIndex].sources[sourceIndex].note = target.value;
+        }
+      }
+    });
+
+    questionsContainer.addEventListener("change", (event) => {
+      const target = event.target;
+      const questionIndex = Number(target.dataset.questionIndex);
+      const answerIndex = Number(target.dataset.answerIndex);
+      if (
+        target.dataset.field === "answer-correct" &&
+        !Number.isNaN(questionIndex) &&
+        !Number.isNaN(answerIndex) &&
+        state.questions[questionIndex] &&
+        state.questions[questionIndex].answers[answerIndex]
+      ) {
+        state.questions[questionIndex].answers[answerIndex].correct = target.checked;
+      }
+    });
+
+    questionsContainer.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-action]");
+      if (!button) return;
+
+      const action = button.dataset.action;
+      const questionIndex = Number(button.dataset.questionIndex);
+      const answerIndex = Number(button.dataset.answerIndex);
+      const sourceIndex = Number(button.dataset.sourceIndex);
+
+      if (action === "remove-question") {
+        if (state.questions.length <= 1) {
+          showError("A quiz must have at least one question.");
+          return;
+        }
+        state.questions.splice(questionIndex, 1);
+        refreshQuestionIds();
+        clearError();
+        render();
+      }
+
+      if (action === "add-answer" && state.questions[questionIndex]) {
+        state.questions[questionIndex].answers.push(createAnswer());
+        queueFocus(
+          `[data-field="answer-text"][data-question-index="${questionIndex}"][data-answer-index="${state.questions[questionIndex].answers.length - 1}"]`
+        );
+        clearError();
+        render();
+      }
+
+      if (action === "remove-answer" && state.questions[questionIndex]) {
+        if (state.questions[questionIndex].answers.length <= 2) {
+          showError("Each question must have at least 2 answer options.");
+          return;
+        }
+        state.questions[questionIndex].answers.splice(answerIndex, 1);
+        clearError();
+        render();
+      }
+
+      if (action === "add-source" && state.questions[questionIndex]) {
+        state.questions[questionIndex].sources.push(createSource());
+        queueFocus(
+          `[data-field="source-title"][data-question-index="${questionIndex}"][data-source-index="${state.questions[questionIndex].sources.length - 1}"]`
+        );
+        clearError();
+        render();
+      }
+
+      if (action === "remove-source" && state.questions[questionIndex]) {
+        state.questions[questionIndex].sources.splice(sourceIndex, 1);
+        clearError();
+        render();
+      }
+    });
+
+    addQuestionBtn.addEventListener("click", () => {
+      state.questions.push({
+        id: state.questions.length + 1,
+        question: "",
+        answers: [
+          { text: "Option 1", correct: true },
+          { text: "Option 2", correct: false },
+        ],
+        sources: [],
+      });
+      refreshQuestionIds();
+      queueFocus(
+        `[data-field="question-text"][data-question-index="${state.questions.length - 1}"]`
+      );
+      clearError();
+      render();
+    });
+
+    function serializeQuiz() {
+      const title = titleInput.value.trim();
+      if (!title) {
+        throw buildValidationError("Please enter a quiz title.", "#quizTitle");
+      }
+
+      if (!state.questions.length) {
+        throw new Error("Please add at least one question.");
+      }
+
+      return {
+        title,
+        questions: state.questions.map((question, index) => {
+          const questionText = question.question.trim();
+          if (!questionText) {
+            throw buildValidationError(
+              `Question ${index + 1} is missing its text.`,
+              `[data-field="question-text"][data-question-index="${index}"]`
+            );
+          }
+
+          if (question.answers.length < 2) {
+            throw buildValidationError(
+              `Question ${index + 1} must have at least 2 answers.`,
+              `[data-field="answer-text"][data-question-index="${index}"][data-answer-index="0"]`
+            );
+          }
+
+          const answers = question.answers.map((answer, answerIndex) => {
+            const text = answer.text.trim();
+            if (!text) {
+              throw buildValidationError(
+                `Question ${index + 1}, answer ${answerIndex + 1} is empty.`,
+                `[data-field="answer-text"][data-question-index="${index}"][data-answer-index="${answerIndex}"]`
+              );
+            }
+            return {
+              text,
+              correct: Boolean(answer.correct),
+            };
+          });
+
+          if (!answers.some((answer) => answer.correct)) {
+            throw buildValidationError(
+              `Question ${index + 1} must have at least one correct answer.`,
+              `[data-field="answer-correct"][data-question-index="${index}"][data-answer-index="0"]`
+            );
+          }
+
+          const sources = question.sources
+            .map((source) => ({
+              title: source.title.trim(),
+              url: source.url.trim(),
+              note: source.note.trim(),
+            }))
+            .filter((source) => source.title || source.url || source.note);
+
+          sources.forEach((source) => {
+            if (!source.url) {
+              throw buildValidationError(
+                `Question ${index + 1} has a source without a URL.`,
+                `[data-field="source-url"][data-question-index="${index}"]`
+              );
+            }
+          });
+
+          const serializedQuestion = {
+            id: index + 1,
+            question: questionText,
+            answers,
+          };
+
+          if (sources.length > 0) {
+            serializedQuestion.sources = sources;
+          }
+
+          return serializedQuestion;
+        }),
+      };
+    }
+
+    form.addEventListener("submit", (event) => {
+      try {
+        clearError();
+        hiddenJsonField.value = JSON.stringify(serializeQuiz(), null, 2);
+      } catch (error) {
+        event.preventDefault();
+        const message = error.message || "Please fix the quiz before saving.";
+        showError(message);
+        focusValidationError(error);
+        window.alert(message);
+      }
+    });
+
+    render();
+  })();
+</script>
+{% endblock %}

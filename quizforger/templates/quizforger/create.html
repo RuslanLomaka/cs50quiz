@@ -1,0 +1,213 @@
+{% extends "quizforger/base.html" %}
+
+{% block title %}Create quiz | QuizForger{% endblock %}
+
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-9">
+
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h1 class="h3 mb-0">Create quiz</h1>
+      </div>
+
+      <div class="alert alert-info">
+        <strong>How this works:</strong>
+        1. Press <strong>Copy prompt</strong>.
+        2. Go to the AI tool of your choice and paste the prompt there.
+        3. Let the AI generate the quiz, then copy the result it gives you.
+        It may look a bit like computer code, but do not worry, you do not need to write any code yourself.
+        4. Paste that result into the box below and press <strong>Create quiz</strong>.
+      </div>
+
+      <div class="card shadow-sm mb-3">
+        <div class="card-body py-3">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <details class="flex-grow-1" id="promptDetails">
+              <summary class="fw-semibold prompt-summary">See full AI prompt</summary>
+              <div class="mt-3">
+                <textarea id="promptText" class="form-control font-monospace" rows="20" readonly>
+You are QuizForger JSON Builder.
+
+GOAL:
+Build ONE ready-to-use JSON quiz file for a web app.
+Output easy-to-copy JSON text only.
+If you are Gemini AI, do not start an interactive quiz in the chat. Only return the final JSON.
+
+STRICT RULES:
+- Ask questions one-by-one (do NOT ask multiple questions at once).
+- Keep every setup question extremely short and simple.
+- Prefer yes/no questions or one-word-answer questions whenever possible.
+- Wait for my reply after each question.
+- Do NOT generate the quiz until you have all required info.
+- When you generate the quiz: output ONLY valid JSON (no markdown, no explanations, no extra text).
+- Use double quotes for all keys/strings. UTF-8 text.
+- Create exactly N questions (N comes from me).
+- Each question should usually have 4 answers, unless I explicitly ask for a different format.
+- Each question must have at least 2 answers.
+- Each question must have at least 1 correct answer.
+- Question IDs must be integers from 1 to N.
+- Randomize the position of the correct answer across questions.
+- Do NOT put the correct answer always first, always last, or in any obvious pattern.
+- Make wrong answers plausible and not joke answers unless I explicitly ask for that style.
+- Vary the question style when appropriate.
+- Some questions can be normal multiple choice.
+- Some questions can use a sentence with a missing word or missing phrase.
+- The missing part does NOT always have to be a single word. It can be a short phrase when that feels natural.
+- Keep the question text readable for a quiz player.
+- Avoid making every question feel mechanically identical.
+- If I choose source-backed mode, include sources for each question whenever reasonably possible.
+- If I choose base AI knowledge mode, sources are optional.
+- For sources.url, output only the plain URL, not markdown.
+
+SCHEMA (MUST FOLLOW EXACTLY):
+{
+  "title": "string",
+  "questions": [
+    {
+      "id": 1,
+      "question": "string",
+      "answers": [
+        { "text": "string", "correct": false },
+        { "text": "string", "correct": true },
+        { "text": "string", "correct": false },
+        { "text": "string", "correct": false }
+      ],
+      "sources": [
+        {
+          "title": "string",
+          "url": "https://example.com",
+          "note": "optional short note"
+        }
+      ]
+    }
+  ]
+}
+
+INTERACTION FLOW:
+1) Ask ONLY this first question:
+"Topic?"
+
+Wait for my reply.
+
+2) Then ask ONLY this second question:
+"Difficulty? (easy/medium/hard)"
+
+Wait for my reply.
+
+3) Then ask ONLY this third question:
+"How many questions?"
+
+Wait for my reply.
+
+4) Then ask ONLY this fourth question:
+"Generation mode? (sources = I will do mini research and provide internet links so you can check the answers / ai = I will use general AI knowledge to generate the quiz faster)"
+
+Wait for my reply.
+
+5) Then generate the final JSON that matches the schema and rules above, with questions based on my description.
+                </textarea>
+              </div>
+            </details>
+
+            <button type="button" class="btn btn-outline-primary btn-sm" id="copyPromptBtn">
+              Copy prompt
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <form method="post" class="card shadow-sm">
+        {% csrf_token %}
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Quiz JSON</label>
+            <textarea
+              name="json"
+              class="form-control font-monospace"
+              rows="16"
+              placeholder="Paste your generated quiz data here"
+            >{{ json_value|default:'' }}</textarea>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary" type="submit">Create quiz</button>
+            <a class="btn btn-outline-secondary" href="{% url 'quizzes_list' %}">Cancel</a>
+          </div>
+        </div>
+      </form>
+
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    const copyBtn = document.getElementById("copyPromptBtn");
+    const promptText = document.getElementById("promptText");
+    const promptDetails = document.getElementById("promptDetails");
+    if (!copyBtn || !promptText) return;
+
+    async function copyPrompt() {
+      const text = promptText.value;
+
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+
+      const temp = document.createElement("textarea");
+      temp.value = text;
+      temp.setAttribute("readonly", "");
+      temp.style.position = "fixed";
+      temp.style.opacity = "0";
+      temp.style.pointerEvents = "none";
+      temp.style.top = "0";
+      temp.style.left = "0";
+      document.body.appendChild(temp);
+      temp.focus();
+      temp.select();
+      temp.setSelectionRange(0, text.length);
+      let copied = false;
+      try {
+        copied = document.execCommand("copy");
+      } catch (e) {
+        copied = false;
+      }
+      document.body.removeChild(temp);
+      return copied;
+    }
+
+    function prepareManualCopy() {
+      if (promptDetails) {
+        promptDetails.open = true;
+      }
+
+      promptText.focus();
+      promptText.select();
+      promptText.setSelectionRange(0, promptText.value.length);
+      promptText.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    copyBtn.addEventListener("click", async () => {
+      try {
+        const copied = await copyPrompt();
+        const old = copyBtn.textContent;
+        if (copied) {
+          copyBtn.textContent = "Copied!";
+          setTimeout(() => (copyBtn.textContent = old), 900);
+          return;
+        }
+
+        prepareManualCopy();
+        copyBtn.textContent = "Tap and hold selected text";
+        setTimeout(() => (copyBtn.textContent = old), 1800);
+      } catch (e) {
+        prepareManualCopy();
+        copyBtn.textContent = "Tap and hold selected text";
+        setTimeout(() => (copyBtn.textContent = "Copy prompt"), 1800);
+      }
+    });
+  })();
+</script>
+{% endblock %}

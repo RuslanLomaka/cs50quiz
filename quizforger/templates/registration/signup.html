@@ -1,0 +1,56 @@
+{% extends "quizforger/base.html" %}
+
+{% block title %}Sign up | QuizForger{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h1 class="h3 mb-3">Create account</h1>
+        <p class="text-muted">Create an account to publish and own quizzes.</p>
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.email.id_for_label }}">Email</label>
+            {{ form.email }}
+            {% if form.email.errors %}
+              <div class="text-danger small mt-1">{{ form.email.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.password1.id_for_label }}">Password</label>
+            {{ form.password1 }}
+            {% if form.password1.errors %}
+              <div class="text-danger small mt-1">{{ form.password1.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="{{ form.password2.id_for_label }}">Confirm password</label>
+            {{ form.password2 }}
+            {% if form.password2.errors %}
+              <div class="text-danger small mt-1">{{ form.password2.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          <button class="btn btn-primary w-100" type="submit">Create account</button>
+        </form>
+
+        <p class="small text-muted mt-3 mb-0">
+          Already have an account?
+          <a href="{% url 'login' %}">Log in</a>.
+          Password reset by email is on the roadmap.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
