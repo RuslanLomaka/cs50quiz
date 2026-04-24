@@ -315,6 +315,25 @@ details[open] > summary::before {
   background: color-mix(in srgb, var(--app-surface) 96%, transparent);
 }
 
+.question-feedback {
+  border-top: 1px solid var(--app-surface-border);
+}
+
+.question-explanation {
+  border: 1px solid var(--app-surface-border);
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, var(--app-accent-soft) 40%, transparent);
+  padding: 0.75rem 0.9rem;
+}
+
+.revealed-correct {
+  color: color-mix(in srgb, var(--bs-success) 26%, currentColor);
+}
+
+[data-bs-theme="dark"] .revealed-correct {
+  color: color-mix(in srgb, var(--bs-success) 42%, currentColor);
+}
+
 @media (max-width: 768px) {
   body::before,
   body::after {

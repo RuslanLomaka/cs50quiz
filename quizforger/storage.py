@@ -12,6 +12,8 @@ def _generate_quiz_id() -> str:
 
 
 def save_new_quiz(data: dict, owner=None) -> Quiz:
+    # Store a few metadata fields inside the JSON itself so the quiz stays
+    # self-describing even if it is exported later.
     quiz_id = _generate_quiz_id()
     now = datetime.now(timezone.utc)
     timestamp = now.isoformat().replace("+00:00", "Z")
@@ -33,6 +35,8 @@ def save_new_quiz(data: dict, owner=None) -> Quiz:
 
 
 def update_quiz(quiz: Quiz, data: dict) -> Quiz:
+    # Updating keeps the same quiz identity and original creation metadata,
+    # while refreshing the JSON content and updated timestamp.
     now = datetime.now(timezone.utc)
     timestamp = now.isoformat().replace("+00:00", "Z")
 

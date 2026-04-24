@@ -101,6 +101,14 @@
       return {
         id: Number.isInteger(normalized.id) ? normalized.id : fallbackId,
         question: typeof normalized.question === "string" ? normalized.question : "",
+        explanation: typeof normalized.explanation === "string" ? normalized.explanation : "",
+        answerMode: normalized.answer_mode === "multiple"
+          ? "multiple"
+          : normalized.answer_mode === "single"
+            ? "single"
+            : answers.filter((answer) => Boolean(answer?.correct)).length > 1
+              ? "multiple"
+              : "single",
         answers: answers.length > 0
           ? answers.map((answer) => ({
               text: typeof answer?.text === "string" ? answer.text : "",
@@ -212,12 +220,40 @@
               >${escapeHtml(question.question)}</textarea>
             </div>
 
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Explanation</label>
+              <textarea
+                class="form-control"
+                rows="3"
+                data-field="question-explanation"
+                data-question-index="${questionIndex}"
+                placeholder="Explain why the correct answer is right and why the wrong ones are wrong"
+              >${escapeHtml(question.explanation || "")}</textarea>
+            </div>
+
             <div class="editor-section mb-3">
               <div class="editor-section-title">
                 <span>Answers</span>
                 <button type="button" class="btn btn-outline-primary btn-sm" data-action="add-answer" data-question-index="${questionIndex}">
                   Add answer
                 </button>
+              </div>
+              <div class="mb-3">
+                <label class="form-label small text-muted mb-1 d-block">Answer mode</label>
+                <select
+                  class="form-select"
+                  data-field="answer-mode"
+                  data-question-index="${questionIndex}"
+                >
+                  <option value="single" ${question.answerMode === "single" ? "selected" : ""}>One correct answer</option>
+                  <option value="multiple" ${question.answerMode === "multiple" ? "selected" : ""}>Multiple correct answers</option>
+                </select>
+              </div>
+              <div class="text-muted small mb-2">
+                ${question.answerMode === "multiple"
+                  ? "This question is set to multiple correct answers. The player will see checkboxes, and at least 2 answers must be marked correct."
+                  : "This question is set to one correct answer. The player will see radio buttons, and exactly 1 answer must be marked correct."
+                }
               </div>
               <div class="vstack gap-2">
                 ${question.answers.map((answer, answerIndex) => `
@@ -379,6 +415,16 @@
         state.questions[questionIndex].question = target.value;
       }
 
+      if (target.dataset.field === "question-explanation") {
+        state.questions[questionIndex].explanation = target.value;
+      }
+
+      if (target.dataset.field === "answer-mode") {
+        state.questions[questionIndex].answerMode = target.value === "multiple" ? "multiple" : "single";
+        clearError();
+        render();
+      }
+
       if (target.dataset.field === "answer-text") {
         const answerIndex = Number(target.dataset.answerIndex);
         if (!Number.isNaN(answerIndex) && state.questions[questionIndex].answers[answerIndex]) {
@@ -420,6 +466,7 @@
         state.questions[questionIndex].answers[answerIndex]
       ) {
         state.questions[questionIndex].answers[answerIndex].correct = target.checked;
+        render();
       }
     });
 
@@ -482,6 +529,8 @@
       state.questions.push({
         id: state.questions.length + 1,
         question: "",
+        explanation: "",
+        answerMode: "single",
         answers: [
           { text: "Option 1", correct: true },
           { text: "Option 2", correct: false },
@@ -538,9 +587,17 @@
             };
           });
 
-          if (!answers.some((answer) => answer.correct)) {
+          const correctCount = answers.filter((answer) => answer.correct).length;
+          if (question.answerMode === "single" && correctCount !== 1) {
             throw buildValidationError(
-              `Question ${index + 1} must have at least one correct answer.`,
+              `Question ${index + 1} is set to one correct answer, so exactly 1 answer option must be marked correct.`,
+              `[data-field="answer-correct"][data-question-index="${index}"][data-answer-index="0"]`
+            );
+          }
+
+          if (question.answerMode === "multiple" && correctCount < 2) {
+            throw buildValidationError(
+              `Question ${index + 1} is set to multiple correct answers, so at least 2 answer options must be marked correct.`,
               `[data-field="answer-correct"][data-question-index="${index}"][data-answer-index="0"]`
             );
           }
@@ -565,8 +622,14 @@
           const serializedQuestion = {
             id: index + 1,
             question: questionText,
+            answer_mode: question.answerMode === "multiple" ? "multiple" : "single",
             answers,
           };
+
+          const explanation = (question.explanation || "").trim();
+          if (explanation) {
+            serializedQuestion.explanation = explanation;
+          }
 
           if (sources.length > 0) {
             serializedQuestion.sources = sources;

@@ -40,6 +40,14 @@ function normalizeSourceUrl(rawUrl) {
   return "";
 }
 
+function correctAnswersCount(question) {
+  return (question.answers ?? []).filter((answer) => answer?.correct).length;
+}
+
+function isMultipleAnswerQuestion(question) {
+  return correctAnswersCount(question) > 1;
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   const titleEl = document.querySelector("#title");
   const quizEl = document.querySelector("#quiz");
@@ -63,6 +71,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.querySelectorAll(".question-sources").forEach((el) => el.remove());
   };
 
+  const clearFeedback = () => {
+    document.querySelectorAll(".question-feedback").forEach((el) => el.remove());
+  };
+
   const setAttemptStatus = (msg, isError = false) => {
     if (!attemptStatusEl) return;
     attemptStatusEl.textContent = msg;
@@ -81,50 +93,53 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const resetQuestionStyles = (card) => {
     card.classList.remove("border-success", "border-danger");
-    const cardBody = card.querySelector(".card-body");
-    if (cardBody) cardBody.classList.remove("bg-success-subtle", "bg-danger-subtle");
 
     card.querySelectorAll(".form-check-label").forEach((l) => {
       l.style.fontWeight = "400";
-      l.classList.remove("fw-bold", "text-danger", "text-success");
+      l.classList.remove("fw-bold", "text-danger", "text-success", "revealed-correct");
     });
   };
 
   const markCorrectAnswers = (card) => {
     card.querySelectorAll(".form-check-label").forEach((l) => {
-      if (l.dataset.correct === "1") l.classList.add("fw-bold");
+      if (l.dataset.correct === "1") l.classList.add("fw-bold", "revealed-correct");
     });
   };
 
-  const getChosenLabel = (card) => {
-    const checked = card.querySelector("input[type=radio]:checked");
-    if (!checked) return null;
-    const wrap = checked.closest(".form-check");
-    if (!wrap) return null;
-    return wrap.querySelector(".form-check-label");
+  const getSelectedLabels = (card) => {
+    return Array.from(card.querySelectorAll("input:checked"))
+      .map((input) => input.closest(".form-check")?.querySelector(".form-check-label"))
+      .filter(Boolean);
   };
 
-  const saveAttempt = async (quizId, score, total) => {
+  const saveAttempt = async (quizId, score, total, answeredCount) => {
+    // The backend is the source of truth for attempt counting rules, so the
+    // player sends raw stats and then renders whatever summary comes back.
     const res = await fetch(`/api/quizzes/${quizId}/attempts`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-CSRFToken": getCookie("csrftoken") || "",
       },
-      body: JSON.stringify({ score, total }),
+      body: JSON.stringify({ score, total, answered_count: answeredCount }),
     });
 
     if (!res.ok) {
-      throw new Error("Failed to save attempt");
+      const message = (await res.text()).trim();
+      throw new Error(message || "Failed to save attempt");
     }
 
     return res.json();
   };
 
+  const findQuestionBody = (question, index) => {
+    return document.querySelector(`.card[data-qid="${question.id ?? index}"] .card-body`);
+  };
+
   const renderSources = (questions) => {
     questions.forEach((question, index) => {
-      const card = document.querySelector(`.card[data-qid="${question.id ?? index}"] .card-body`);
-      if (!card) return;
+      const cardBody = findQuestionBody(question, index);
+      if (!cardBody) return;
 
       const sources = (Array.isArray(question.sources) ? question.sources : [])
         .map((source) => ({
@@ -167,8 +182,52 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
 
       wrap.appendChild(list);
-      card.appendChild(wrap);
+      cardBody.appendChild(wrap);
     });
+  };
+
+  const renderFeedback = (card, question, status, selectedLabels) => {
+    const body = card.querySelector(".card-body");
+    if (!body) return;
+
+    const correctLabels = Array.from(card.querySelectorAll('.form-check-label[data-correct="1"]'));
+    const correctText = correctLabels.map((label) => label.textContent?.trim() || "").filter(Boolean).join("; ");
+    const explanation = typeof question.explanation === "string" ? question.explanation.trim() : "";
+
+    let lead;
+    if (status === "correct") {
+      lead = "You got this right.";
+    } else if (status === "missed") {
+      lead = `You missed this question. The correct ${correctLabels.length > 1 ? "answers were" : "answer was"}: ${correctText}.`;
+    } else {
+      lead = `Your answer was not correct. The correct ${correctLabels.length > 1 ? "answers were" : "answer was"}: ${correctText}.`;
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = "question-feedback mt-3 pt-3";
+
+    const leadEl = document.createElement("div");
+    leadEl.className = `fw-semibold ${status === "correct" ? "text-success" : status === "missed" ? "text-muted" : "text-danger"}`;
+    leadEl.textContent = lead;
+    wrap.appendChild(leadEl);
+
+    if (explanation) {
+      const explanationWrap = document.createElement("div");
+      explanationWrap.className = "question-explanation mt-3";
+
+      const explanationTitle = document.createElement("div");
+      explanationTitle.className = "small fw-semibold text-uppercase text-muted mb-1";
+      explanationTitle.textContent = "Explanation";
+      explanationWrap.appendChild(explanationTitle);
+
+      const explanationEl = document.createElement("div");
+      explanationEl.className = "small";
+      explanationEl.textContent = explanation;
+      explanationWrap.appendChild(explanationEl);
+      wrap.appendChild(explanationWrap);
+    }
+
+    body.appendChild(wrap);
   };
 
   try {
@@ -190,34 +249,44 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     quizEl.innerHTML = "";
 
-    (QUIZ.questions ?? []).forEach((q, idx) => {
+    (QUIZ.questions ?? []).forEach((question, idx) => {
       const card = document.createElement("div");
       card.className = "card shadow-sm";
-      card.dataset.qid = q.id ?? idx;
+      card.dataset.qid = question.id ?? idx;
 
       const body = document.createElement("div");
       body.className = "card-body";
 
       const qText = document.createElement("div");
       qText.className = "card-title fw-semibold";
-      qText.textContent = `${idx + 1}. ${q.question ?? ""}`;
+      qText.textContent = `${idx + 1}. ${question.question ?? ""}`;
       body.appendChild(qText);
+
+      if (isMultipleAnswerQuestion(question)) {
+        const multiNote = document.createElement("div");
+        multiNote.className = "small text-muted mt-2";
+        multiNote.textContent = "This question has more than 1 correct answer.";
+        body.appendChild(multiNote);
+      }
 
       const answersWrap = document.createElement("div");
       answersWrap.className = "vstack gap-2 mt-3";
 
-      const shuffledAnswers = shuffleArray(q.answers ?? []);
+      // Answers are shuffled on render so imported quizzes do not leak a
+      // predictable correct-answer position.
+      const shuffledAnswers = shuffleArray(question.answers ?? []);
+      const inputType = isMultipleAnswerQuestion(question) ? "checkbox" : "radio";
 
       shuffledAnswers.forEach((a, aIdx) => {
-        const id = `q${q.id ?? idx}_a${aIdx}`;
+        const id = `q${question.id ?? idx}_a${aIdx}`;
 
         const wrap = document.createElement("div");
         wrap.className = "form-check";
 
         const input = document.createElement("input");
         input.className = "form-check-input";
-        input.type = "radio";
-        input.name = `q_${q.id ?? idx}`;
+        input.type = inputType;
+        input.name = `q_${question.id ?? idx}`;
         input.id = id;
 
         const label = document.createElement("label");
@@ -243,26 +312,49 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         clearResult();
         clearSources();
+        clearFeedback();
         setAttemptStatus("");
 
         const total = (QUIZ.questions ?? []).length;
         let correctCount = 0;
+        let answeredCount = 0;
 
-        document.querySelectorAll(".card[data-qid]").forEach((card) => {
+        (QUIZ.questions ?? []).forEach((question, questionIndex) => {
+          const card = document.querySelector(`.card[data-qid="${question.id ?? questionIndex}"]`);
+          if (!card) return;
+
           resetQuestionStyles(card);
           markCorrectAnswers(card);
 
-          const chosenLabel = getChosenLabel(card);
-          if (!chosenLabel) return;
+          const selectedLabels = getSelectedLabels(card);
+          const correctLabels = Array.from(card.querySelectorAll('.form-check-label[data-correct="1"]'));
+          const selectedSet = new Set(selectedLabels.map((label) => label.textContent));
+          const correctSet = new Set(correctLabels.map((label) => label.textContent));
+          const gotAnything = selectedLabels.length > 0;
+          if (gotAnything) answeredCount += 1;
 
-          const isCorrect = chosenLabel.dataset.correct === "1";
+          // A multiple-answer question only counts as correct if the selected
+          // set matches the correct set exactly.
+          const isCorrect =
+            gotAnything &&
+            selectedSet.size === correctSet.size &&
+            Array.from(correctSet).every((text) => selectedSet.has(text));
+
           if (isCorrect) {
             correctCount += 1;
-            chosenLabel.classList.add("text-success");
+            selectedLabels.forEach((label) => label.classList.add("text-success"));
             card.classList.add("border-success");
+            renderFeedback(card, question, "correct", selectedLabels);
           } else {
-            chosenLabel.classList.add("text-danger");
+            selectedLabels.forEach((label) => {
+              if (label.dataset.correct === "1") {
+                label.classList.add("text-success");
+              } else {
+                label.classList.add("text-danger");
+              }
+            });
             card.classList.add("border-danger");
+            renderFeedback(card, question, gotAnything ? "wrong" : "missed", selectedLabels);
           }
         });
 
@@ -271,9 +363,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (total > 0) {
           try {
-            const stats = await saveAttempt(quizId, correctCount, total);
+            const stats = await saveAttempt(quizId, correctCount, total, answeredCount);
             updateStats(stats);
-            setAttemptStatus("Attempt saved.");
+            setAttemptStatus(stats.message || (stats.saved ? "Attempt saved." : "Attempt not counted."));
           } catch (err) {
             setAttemptStatus(err?.message ?? "Could not save attempt.", true);
           }

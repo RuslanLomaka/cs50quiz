@@ -46,6 +46,10 @@
                 <div class="d-flex gap-2">
                   {% if quiz.can_edit %}
                     <a class="btn btn-outline-secondary btn-sm" href="{% url 'quiz_edit' quiz.id %}">Edit</a>
+                    <form method="post" action="{% url 'quiz_delete' quiz.id %}" class="d-inline" onsubmit="return confirm('Delete this quiz? This cannot be undone.');">
+                      {% csrf_token %}
+                      <button class="btn btn-outline-danger btn-sm" type="submit">Delete</button>
+                    </form>
                   {% endif %}
                   <a class="btn btn-primary btn-sm" href="{% url 'quiz_page' quiz.id %}">Play</a>
                 </div>

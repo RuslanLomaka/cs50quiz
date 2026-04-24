@@ -9,8 +9,11 @@ At its current stage, the application supports:
 - user signup, login, and logout
 - authenticated quiz creation
 - browser-based quiz editing
+- owner-side quiz deletion
 - public quiz playing
 - attempt tracking and average score tracking
+- per-question explanations shown after checking answers
+- single-answer and multiple-answer questions
 - optional per-question source links
 - a dark mode that follows system preference and can also be toggled manually
 
@@ -26,7 +29,7 @@ In terms of complexity, the project combines several moving parts that work toge
 
 - Django views, routing, authentication, and database models
 - database-backed storage for quiz content and attempts
-- frontend JavaScript for rendering quizzes, scoring answers, saving attempts, and displaying sources
+- frontend JavaScript for rendering quizzes, handling both radio-button and checkbox question types, scoring answers, saving attempts, and displaying explanations and sources
 - a structured browser editor that serializes form state back into valid quiz JSON
 - permission rules so only owners or staff can edit quizzes
 - source/reference support for question verification after quiz completion
@@ -62,6 +65,7 @@ The project is organized as a single Django project with one main application:
   - API endpoint for attempt creation
   - create quiz flow
   - edit quiz flow
+  - delete quiz action
   - signup view
 
 - `quizforger/urls.py`
@@ -103,9 +107,11 @@ The project is organized as a single Django project with one main application:
 - `quizforger/static/quizforger/quiz.js`
   Client-side quiz logic for:
   - rendering questions and answers
+  - handling single-answer and multiple-answer question modes
   - shuffling answers
   - scoring
   - attempt submission
+  - explanation display after checking answers
   - inline source display after completion
 
 - `quizforger/static/quizforger/app.css`
@@ -124,7 +130,7 @@ The project is organized as a single Django project with one main application:
 3. Install Django if it is not already installed:
 
 ```bash
-pip install django
+pip install -r requirements.txt
 ```
 
 4. Apply migrations:
@@ -160,12 +166,15 @@ The app supports both quick quiz import and manual browser editing. In the edit 
 
 - change the quiz title
 - edit question text
+- edit per-question explanations
 - edit answer text
 - mark correct answers
+- choose whether a question uses one correct answer or multiple correct answers
 - add or remove answer options
 - add or remove sources
+- delete an owned quiz from the list view
 
-The editor validates common mistakes before saving. For example, it checks that each question has text, each answer has text, there are at least two answer options, and at least one answer is marked correct.
+The editor validates common mistakes before saving. For example, it checks that each question has text, each answer has text, there are at least two answer options, and the number of correct answers matches the selected answer mode.
 
 ## How to Test
 
@@ -193,13 +202,24 @@ Here are the main features that should be tested manually:
 - save
 - confirm the updated version is shown when playing the quiz
 
+### Quiz ownership actions
+
+- open `My quizzes`
+- delete one of your own quizzes
+- confirm it disappears from the list
+- verify that another user does not get the same delete option
+
 ### Quiz play
 
 - open a quiz
 - answer the questions
 - click `Check answers`
 - verify score calculation
+- verify that explanations appear under the relevant questions after completion
 - verify that sources appear under the relevant questions after completion
+- verify that multiple-answer questions use checkboxes
+- verify that single-answer questions use radio buttons
+- verify that attempts with fewer than 50% of questions answered do not count
 
 ### Stats
 
@@ -229,6 +249,7 @@ This is still a development-stage project, so there are some known limitations:
 
 - password reset by email is not implemented yet
 - quizzes can currently be attempted multiple times by the same user
+- the app relies on AI-generated input quality during quiz creation
 - the project uses SQLite in development
 - there is no deployment configuration included yet
 
@@ -241,7 +262,7 @@ Possible next improvements:
 - add password reset by email
 - add stronger password validation and clearer password help text
 - add an option to limit quizzes to one attempt per user
-- add delete/manage actions for quiz owners directly in `My quizzes`
+- add a more structured deployment setup for production hosting
 
 ## Author
 

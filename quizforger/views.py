@@ -10,10 +10,43 @@ from django.views.decorators.http import require_http_methods
 
 from .forms import SignUpForm
 from .models import Attempt, Quiz
-from .storage import list_quizzes, save_new_quiz, update_quiz
+from .storage import save_new_quiz, update_quiz
+
+
+def _extract_quiz_json(raw: str) -> dict:
+    # AI tools sometimes wrap the JSON in extra text, so we accept either
+    # a clean object or the first {...} block inside the pasted response.
+    raw = raw.strip()
+    if not raw:
+        raise ValueError("JSON is required")
+
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        start = raw.find("{")
+        end = raw.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            raise ValueError("Invalid JSON") from None
+
+        snippet = raw[start:end + 1]
+        try:
+            data = json.loads(snippet)
+        except json.JSONDecodeError as exc:
+            raise ValueError("Invalid JSON") from exc
+
+    if not isinstance(data, dict):
+        raise ValueError("JSON must be an object")
+    if "questions" not in data or not isinstance(data["questions"], list):
+        raise ValueError("Missing 'questions' array")
+    if not isinstance(data.get("title"), str) or not data.get("title", "").strip():
+        data["title"] = "Untitled quiz"
+
+    return data
 
 
 def _quiz_stats(quiz: Quiz) -> dict:
+    # Keep stats formatting in one place so the list page and the attempt API
+    # stay consistent.
     stats = quiz.attempts.aggregate(
         attempt_count=Count("id"),
         average_percent=Avg(
@@ -30,6 +63,8 @@ def _quiz_stats(quiz: Quiz) -> dict:
 
 
 def _quiz_list_queryset():
+    # Annotate the list view with aggregate stats up front to avoid per-row
+    # queries while rendering.
     return Quiz.objects.select_related("owner").annotate(
         attempt_count=Count("attempts"),
         average_percent=Avg(
@@ -52,6 +87,8 @@ def _can_edit_quiz(request, quiz: Quiz) -> bool:
 
 
 def _quiz_cards_for_request(request, queryset):
+    # The template only needs a simple flag to decide whether owner actions
+    # should be shown on each row.
     quizzes = list(queryset)
     for quiz in quizzes:
         quiz.can_edit = _can_edit_quiz(request, quiz)
@@ -131,15 +168,37 @@ def quiz_attempt_create(request, quiz_id):
     except (TypeError, ValueError):
         return HttpResponseBadRequest("Score and total must be integers")
 
+    raw_answered_count = payload.get("answered_count")
+    if raw_answered_count in (None, ""):
+        # Keep older cached frontend code working during development.
+        answered_count = total
+    else:
+        try:
+            answered_count = int(raw_answered_count)
+        except (TypeError, ValueError):
+            return HttpResponseBadRequest("answered_count must be an integer")
+
     if total <= 0:
         return HttpResponseBadRequest("Total must be greater than zero")
     if score < 0 or score > total:
         return HttpResponseBadRequest("Score must be between 0 and total")
+    if answered_count < 0 or answered_count > total:
+        return HttpResponseBadRequest("answered_count must be between 0 and total")
+
+    if answered_count * 2 < total:
+        # The quiz still returns feedback to the user, but it does not affect
+        # public stats unless they answered at least half the questions.
+        stats = _quiz_stats(quiz)
+        stats["saved"] = False
+        stats["message"] = "Attempt not counted because fewer than 50% of questions were answered."
+        return JsonResponse(stats)
 
     user = request.user if request.user.is_authenticated else None
     Attempt.objects.create(quiz=quiz, user=user, score=score, total=total)
 
     stats = _quiz_stats(quiz)
+    stats["saved"] = True
+    stats["message"] = "Attempt saved."
     return JsonResponse(stats)
 
 
@@ -156,21 +215,10 @@ def quiz_new(request):
         )
 
     raw = (request.POST.get("json") or "").strip()
-    if not raw:
-        return HttpResponseBadRequest("JSON is required")
-
     try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        return HttpResponseBadRequest("Invalid JSON")
-
-    if not isinstance(data, dict):
-        return HttpResponseBadRequest("JSON must be an object")
-    if "questions" not in data or not isinstance(data["questions"], list):
-        return HttpResponseBadRequest("Missing 'questions' array")
-
-    if not isinstance(data.get("title"), str) or not data.get("title", "").strip():
-        data["title"] = "Untitled quiz"
+        data = _extract_quiz_json(raw)
+    except ValueError as exc:
+        return HttpResponseBadRequest(str(exc))
 
     owner = request.user if request.user.is_authenticated else None
     quiz = save_new_quiz(data, owner=owner)
@@ -196,21 +244,21 @@ def quiz_edit(request, quiz_id):
         )
 
     raw = (request.POST.get("json") or "").strip()
-    if not raw:
-        return HttpResponseBadRequest("JSON is required")
-
     try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        return HttpResponseBadRequest("Invalid JSON")
-
-    if not isinstance(data, dict):
-        return HttpResponseBadRequest("JSON must be an object")
-    if "questions" not in data or not isinstance(data["questions"], list):
-        return HttpResponseBadRequest("Missing 'questions' array")
-
-    if not isinstance(data.get("title"), str) or not data.get("title", "").strip():
-        data["title"] = "Untitled quiz"
+        data = _extract_quiz_json(raw)
+    except ValueError as exc:
+        return HttpResponseBadRequest(str(exc))
 
     quiz = update_quiz(quiz, data)
     return redirect("quiz_page", quiz_id=quiz.id)
+
+
+@require_http_methods(["POST"])
+@login_required
+def quiz_delete(request, quiz_id):
+    quiz = _get_quiz_or_404(quiz_id)
+    if not _can_edit_quiz(request, quiz):
+        return HttpResponseForbidden("You are not allowed to delete this quiz")
+
+    quiz.delete()
+    return redirect("my_quizzes")
