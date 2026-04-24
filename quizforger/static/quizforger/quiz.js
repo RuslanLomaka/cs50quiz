@@ -53,8 +53,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const quizEl = document.querySelector("#quiz");
   const resultEl = document.querySelector("#result");
   const checkBtn = document.querySelector("#check");
-  const attemptCountEl = document.querySelector("#attemptCount");
-  const averageScoreEl = document.querySelector("#averageScore");
   const attemptStatusEl = document.querySelector("#attemptStatus");
 
   const setError = (msg) => {
@@ -80,15 +78,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     attemptStatusEl.textContent = msg;
     attemptStatusEl.classList.toggle("text-danger", isError);
     attemptStatusEl.classList.toggle("text-muted", !isError);
-  };
-
-  const updateStats = (stats) => {
-    if (attemptCountEl && typeof stats.attemptCount !== "undefined") {
-      attemptCountEl.textContent = String(stats.attemptCount);
-    }
-    if (averageScoreEl && typeof stats.averagePercent !== "undefined") {
-      averageScoreEl.textContent = `${Number(stats.averagePercent).toFixed(1)}%`;
-    }
   };
 
   const resetQuestionStyles = (card) => {
@@ -186,7 +175,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   };
 
-  const renderFeedback = (card, question, status, selectedLabels) => {
+  const renderFeedback = (card, question, status) => {
     const body = card.querySelector(".card-body");
     if (!body) return;
 
@@ -233,11 +222,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   try {
     const quizId = window.QUIZ_ID;
     if (!quizId) throw new Error("QUIZ_ID is missing");
-
-    updateStats({
-      attemptCount: window.QUIZ_STATS?.attemptCount ?? 0,
-      averagePercent: window.QUIZ_STATS?.averagePercent ?? 0,
-    });
 
     const res = await fetch(`/api/quizzes/${quizId}`);
     if (!res.ok) throw new Error("Failed to load quiz");
@@ -344,7 +328,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             correctCount += 1;
             selectedLabels.forEach((label) => label.classList.add("text-success"));
             card.classList.add("border-success");
-            renderFeedback(card, question, "correct", selectedLabels);
+            renderFeedback(card, question, "correct");
           } else {
             selectedLabels.forEach((label) => {
               if (label.dataset.correct === "1") {
@@ -354,7 +338,7 @@ document.addEventListener("DOMContentLoaded", async () => {
               }
             });
             card.classList.add("border-danger");
-            renderFeedback(card, question, gotAnything ? "wrong" : "missed", selectedLabels);
+            renderFeedback(card, question, gotAnything ? "wrong" : "missed");
           }
         });
 
@@ -364,7 +348,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (total > 0) {
           try {
             const stats = await saveAttempt(quizId, correctCount, total, answeredCount);
-            updateStats(stats);
             setAttemptStatus(stats.message || (stats.saved ? "Attempt saved." : "Attempt not counted."));
           } catch (err) {
             setAttemptStatus(err?.message ?? "Could not save attempt.", true);

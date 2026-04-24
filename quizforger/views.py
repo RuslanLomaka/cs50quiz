@@ -220,8 +220,7 @@ def quiz_new(request):
     except ValueError as exc:
         return HttpResponseBadRequest(str(exc))
 
-    owner = request.user if request.user.is_authenticated else None
-    quiz = save_new_quiz(data, owner=owner)
+    quiz = save_new_quiz(data, owner=request.user)
     return redirect("quiz_page", quiz_id=quiz.id)
 
 
