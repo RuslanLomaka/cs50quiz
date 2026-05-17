@@ -1,8 +1,8 @@
 # QuizForger
 
-QuizForger is my CS50 Web capstone project. It is a Django-based web application for creating, editing, and playing custom quizzes in the browser.
+**Live self-hosted deployment:** [quiz.ruslanlomaka.org](https://quiz.ruslanlomaka.org/quizzes) runs on my own Raspberry Pi 3 hardware, served by Django/Gunicorn and published securely through Cloudflare Tunnel.
 
-The project is currently self-hosted by me on my own Raspberry Pi 3 hardware, served as a Django/Gunicorn application and published to the internet through Cloudflare Tunnel.
+QuizForger is my CS50 Web capstone project. It is a Django-based web application for creating, editing, and playing custom quizzes in the browser.
 
 The core idea behind the project is simple: instead of forcing the author to manually build every quiz question from scratch, QuizForger gives them a guided workflow. They can generate a quiz with an AI tool, paste the result into the app, and then refine it further through a browser-based editor. The finished quiz can then be played interactively in the browser, scored immediately, and tracked through attempts and average score statistics.
 
