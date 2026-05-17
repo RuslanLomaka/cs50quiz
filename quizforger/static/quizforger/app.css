@@ -58,6 +58,32 @@ body::after {
   background: color-mix(in srgb, var(--app-accent-warm) 50%, transparent);
 }
 
+.portfolio-strip {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 1.6rem;
+  padding: 0.22rem 0.75rem;
+  background: color-mix(in srgb, var(--app-navbar) 86%, transparent);
+  border-bottom: 1px solid var(--app-surface-border);
+  color: var(--app-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.portfolio-strip a {
+  color: var(--app-accent);
+  text-decoration: none;
+}
+
+.portfolio-strip a:hover {
+  text-decoration: underline;
+}
+
 .app-navbar {
   background: var(--app-navbar);
   backdrop-filter: blur(16px);
