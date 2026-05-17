@@ -10,6 +10,7 @@ This app should run behind a real WSGI server on the Pi. Do not expose Django's 
 - Cloudflare Tunnel publishes the app hostname and forwards traffic to Gunicorn.
 
 If your Linux user is not `pi`, update `deployment/quizforger.service` before installing it.
+For example, with user `ruslan`, use `/home/ruslan/apps/cs50quiz` in `WorkingDirectory`, `EnvironmentFile`, and `ExecStart`.
 
 ## 1. Clone and install the app
 
@@ -45,6 +46,8 @@ Edit `.env` and set:
 - `DJANGO_CSRF_TRUSTED_ORIGINS` to `https://your-real-hostname`.
 - Leave `DJANGO_SECURE_HSTS_SECONDS=0` for the first deployment. After HTTPS is confirmed, you can raise it deliberately.
 
+Keep `.env` only on the Pi. It contains production secrets and is intentionally ignored by git.
+
 ## 3. Prepare Django
 
 ```bash
@@ -75,9 +78,20 @@ Local health check:
 curl -I http://127.0.0.1:8001/quizzes
 ```
 
+A `301 Moved Permanently` response is expected when `DJANGO_SECURE_SSL_REDIRECT=True`; the public Cloudflare URL should use HTTPS.
+
 ## 5. Install and configure Cloudflare Tunnel
 
 Install `cloudflared` using the current command shown in the Cloudflare dashboard or Cloudflare package repository for your Pi architecture.
+
+If you already have a healthy tunnel and connector for the Pi, reuse it. In Cloudflare Zero Trust, open the tunnel, go to **Published application routes**, and add:
+
+- Hostname: `quiz.example.com`
+- Path: leave empty
+- Service type: `HTTP`
+- Service URL: `localhost:8001`
+
+Cloudflare will create the DNS tunnel record automatically.
 
 Authenticate and create a named tunnel:
 
@@ -109,6 +123,8 @@ sudo systemctl status cloudflared
 ```
 
 After this, open `https://quiz.example.com/quizzes`.
+
+If Django returns `Bad Request (400)`, check that the public hostname is present in `DJANGO_ALLOWED_HOSTS`, then restart `quizforger`.
 
 ## Operational notes
 
