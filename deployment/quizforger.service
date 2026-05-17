@@ -1,0 +1,15 @@
+[Unit]
+Description=QuizForger Django app
+After=network.target
+
+[Service]
+User=pi
+Group=www-data
+WorkingDirectory=/home/pi/apps/cs50quiz
+EnvironmentFile=/home/pi/apps/cs50quiz/.env
+ExecStart=/home/pi/apps/cs50quiz/.venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8001 --workers 2 --timeout 60
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

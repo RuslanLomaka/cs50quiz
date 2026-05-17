@@ -11,5 +11,9 @@ __pycache__/
 # System
 *.DS_Store
 
+# Local secrets and deployment output
+.env
+staticfiles/
+
 # Migrations
  network/migrations

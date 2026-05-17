@@ -1,0 +1,7 @@
+tunnel: QUIZFORGER_TUNNEL_UUID
+credentials-file: /home/pi/.cloudflared/QUIZFORGER_TUNNEL_UUID.json
+
+ingress:
+  - hostname: quiz.example.com
+    service: http://127.0.0.1:8001
+  - service: http_status:404
