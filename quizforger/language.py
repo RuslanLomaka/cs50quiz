@@ -211,7 +211,8 @@ STRICT RULES:
 - Prefer yes/no questions or one-word-answer questions whenever possible.
 - Wait for my reply after each question.
 - Do NOT generate the quiz until you have all required info.
-- When you generate the quiz: output ONLY valid JSON (no markdown, no explanations, no extra text).
+- When you generate the quiz: output the valid JSON object first, with no markdown around it.
+- After the JSON object, you may add one short plain-language instruction telling the user to copy the JSON and return to QuizForger, paste it into the box, and follow the page instructions.
 - Use double quotes for all keys/strings. UTF-8 text.
 - Create exactly N questions (N comes from me).
 - At least 30% of the questions must be multiple-answer questions.
@@ -359,7 +360,9 @@ Wait for my reply.
 5) Then generate the final JSON that matches the schema and rules above, with questions based on my description.
 Make sure the JSON includes explanations.
 Make sure at least 30% of the questions are multiple-answer questions.
-Every multiple-answer question must have exactly 6 answers, with 2 or 3 correct answers.""",
+Every multiple-answer question must have exactly 6 answers, with 2 or 3 correct answers.
+After the JSON, add this short instruction:
+"Now copy the JSON above, go back to the QuizForger page you came from, paste it into the box, and follow the instructions there.\"""",
     "de": """Du bist QuizForger JSON Builder.
 
 ZIEL:
@@ -375,7 +378,8 @@ STRENGE REGELN:
 - Bevorzuge Ja/Nein-Fragen oder Ein-Wort-Antworten, wenn möglich.
 - Warte nach jeder Frage auf meine Antwort.
 - Generiere das Quiz erst, wenn du alle nötigen Informationen hast.
-- Wenn du das Quiz generierst: Gib NUR gültiges JSON aus, ohne Markdown, Erklärungen oder Zusatztext.
+- Wenn du das Quiz generierst: Gib zuerst das gültige JSON-Objekt aus, ohne Markdown darum herum.
+- Nach dem JSON-Objekt darfst du eine kurze normale Anweisung hinzufügen, dass der Nutzer das JSON kopieren, zu QuizForger zurückgehen, es in das Feld einfügen und den Seitenanweisungen folgen soll.
 - Verwende doppelte Anführungszeichen für alle Keys und Strings. UTF-8-Text.
 - Erstelle genau N Fragen (N kommt von mir).
 - Mindestens 30% der Fragen müssen mehrere richtige Antworten haben.
@@ -457,7 +461,9 @@ Warte auf meine Antwort.
 5) Generiere dann das finale JSON nach Schema und Regeln, basierend auf meiner Beschreibung.
 Stelle sicher, dass das JSON Erklärungen enthält.
 Stelle sicher, dass mindestens 30% der Fragen mehrere richtige Antworten haben.
-Jede Frage mit mehreren richtigen Antworten muss genau 6 Antworten haben, mit 2 oder 3 richtigen Antworten.""",
+Jede Frage mit mehreren richtigen Antworten muss genau 6 Antworten haben, mit 2 oder 3 richtigen Antworten.
+Füge nach dem JSON diese kurze Anweisung hinzu:
+"Kopiere jetzt das JSON oben, gehe zurück zur QuizForger-Seite, von der du gekommen bist, füge es in das Feld ein und folge den Anweisungen dort.\"""",
     "uk": """Ти QuizForger JSON Builder.
 
 МЕТА:
@@ -473,7 +479,8 @@ Jede Frage mit mehreren richtigen Antworten muss genau 6 Antworten haben, mit 2 
 - За можливості використовуй питання так/ні або питання з відповіддю одним словом.
 - Чекай моєї відповіді після кожного питання.
 - Не генеруй тест, доки не отримаєш усю потрібну інформацію.
-- Коли генеруєш тест: виведи ТІЛЬКИ валідний JSON, без Markdown, пояснень або зайвого тексту.
+- Коли генеруєш тест: спочатку виведи валідний JSON-об'єкт, без Markdown навколо нього.
+- Після JSON-об'єкта можеш додати одну коротку звичайну інструкцію: скопіювати JSON, повернутися до QuizForger, вставити його в поле і виконати інструкції на сторінці.
 - Використовуй подвійні лапки для всіх ключів і рядків. Текст UTF-8.
 - Створи рівно N питань (N я вкажу).
 - Щонайменше 30% питань мають бути з кількома правильними відповідями.
@@ -555,7 +562,9 @@ Jede Frage mit mehreren richtigen Antworten muss genau 6 Antworten haben, mit 2 
 5) Потім згенеруй фінальний JSON за схемою і правилами, на основі мого опису.
 Переконайся, що JSON містить пояснення.
 Переконайся, що щонайменше 30% питань мають кілька правильних відповідей.
-Кожне питання з кількома правильними відповідями має мати рівно 6 відповідей, з 2 або 3 правильними відповідями.""",
+Кожне питання з кількома правильними відповідями має мати рівно 6 відповідей, з 2 або 3 правильними відповідями.
+Після JSON додай цю коротку інструкцію:
+"Тепер скопіюй JSON вище, повернися на сторінку QuizForger, з якої ти прийшов, встав його в поле і виконай інструкції там.\"""",
 }
 
 
