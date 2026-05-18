@@ -202,8 +202,26 @@ textarea.form-control {
   position: relative;
 }
 
+body.prompt-copied .copy-prompt-cta {
+  animation: none;
+}
+
 .copy-prompt-cta:hover,
 .copy-prompt-cta:focus-visible {
+  animation-play-state: paused;
+  transform: translateY(-1px);
+}
+
+.ai-tool-cta {
+  position: relative;
+}
+
+body.prompt-copied .ai-tool-cta {
+  animation: promptCtaPulse 2.4s ease-in-out infinite;
+}
+
+body.prompt-copied .ai-tool-cta:hover,
+body.prompt-copied .ai-tool-cta:focus-visible {
   animation-play-state: paused;
   transform: translateY(-1px);
 }
@@ -226,7 +244,8 @@ textarea.form-control {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .copy-prompt-cta {
+  .copy-prompt-cta,
+  body.prompt-copied .ai-tool-cta {
     animation: none;
   }
 }
