@@ -197,18 +197,18 @@ textarea.form-control {
   border-color: transparent;
 }
 
-.create-cta {
-  animation: createCtaPulse 2.4s ease-in-out infinite;
+.copy-prompt-cta {
+  animation: promptCtaPulse 2.4s ease-in-out infinite;
   position: relative;
 }
 
-.create-cta:hover,
-.create-cta:focus-visible {
+.copy-prompt-cta:hover,
+.copy-prompt-cta:focus-visible {
   animation-play-state: paused;
   transform: translateY(-1px);
 }
 
-@keyframes createCtaPulse {
+@keyframes promptCtaPulse {
   0%,
   100% {
     box-shadow:
@@ -226,7 +226,7 @@ textarea.form-control {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .create-cta {
+  .copy-prompt-cta {
     animation: none;
   }
 }

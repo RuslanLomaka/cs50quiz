@@ -73,7 +73,7 @@
             {% if request.user.is_authenticated %}
                 <a class="btn btn-outline-secondary btn-sm" href="{% url 'my_quizzes' %}">{{ ui.my_quizzes }}</a>
             {% endif %}
-            <a class="btn btn-primary btn-sm create-cta" href="{% url 'quiz_new' %}">{{ ui.create }}</a>
+            <a class="btn btn-primary btn-sm" href="{% url 'quiz_new' %}">{{ ui.create }}</a>
             {% if request.user.is_authenticated %}
                 <span class="navbar-text small text-muted align-self-center">{{ request.user.email }}</span>
                 <form method="post" action="{% url 'logout' %}" class="d-inline">
