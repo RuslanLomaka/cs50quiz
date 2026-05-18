@@ -18,31 +18,81 @@ from .storage import save_new_quiz, update_quiz
 
 def _extract_quiz_json(raw: str) -> dict:
     # AI tools sometimes wrap the JSON in extra text, so we accept either
-    # a clean object or the first {...} block inside the pasted response.
+    # a clean object or a complete quiz-shaped JSON object inside the pasted
+    # response. The decoder approach is safer than slicing from the first {
+    # to the last }, because post-JSON instructions may contain braces too.
     raw = raw.strip()
     if not raw:
         raise ValueError("JSON is required")
 
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        start = raw.find("{")
-        end = raw.rfind("}")
-        if start == -1 or end == -1 or end <= start:
-            raise ValueError("Invalid JSON") from None
+    decoder = json.JSONDecoder()
+    last_error = "Invalid JSON"
 
-        snippet = raw[start:end + 1]
+    for index, char in enumerate(raw):
+        if char != "{":
+            continue
+
         try:
-            data = json.loads(snippet)
+            data, _ = decoder.raw_decode(raw[index:])
         except json.JSONDecodeError as exc:
-            raise ValueError("Invalid JSON") from exc
+            last_error = "Invalid JSON"
+            continue
 
+        if isinstance(data, dict) and "questions" in data:
+            return _validate_quiz_json(data)
+
+        try:
+            return _validate_quiz_json(data)
+        except ValueError as exc:
+            last_error = str(exc)
+            continue
+
+    raise ValueError(last_error)
+
+
+def _validate_quiz_json(data: object) -> dict:
     if not isinstance(data, dict):
         raise ValueError("JSON must be an object")
+
     if "questions" not in data or not isinstance(data["questions"], list):
         raise ValueError("Missing 'questions' array")
+    if not data["questions"]:
+        raise ValueError("The quiz must contain at least one question")
+
     if not isinstance(data.get("title"), str) or not data.get("title", "").strip():
         data["title"] = "Untitled quiz"
+
+    for question_index, question in enumerate(data["questions"], start=1):
+        if not isinstance(question, dict):
+            raise ValueError(f"Question {question_index} must be an object")
+        if not isinstance(question.get("question"), str) or not question["question"].strip():
+            raise ValueError(f"Question {question_index} is missing question text")
+
+        answers = question.get("answers")
+        if not isinstance(answers, list) or len(answers) < 2:
+            raise ValueError(f"Question {question_index} must have at least 2 answers")
+
+        correct_count = 0
+        for answer_index, answer in enumerate(answers, start=1):
+            if not isinstance(answer, dict):
+                raise ValueError(f"Question {question_index}, answer {answer_index} must be an object")
+            if not isinstance(answer.get("text"), str) or not answer["text"].strip():
+                raise ValueError(f"Question {question_index}, answer {answer_index} is missing answer text")
+            if not isinstance(answer.get("correct"), bool):
+                raise ValueError(f"Question {question_index}, answer {answer_index} must use true or false for correct")
+            if answer["correct"]:
+                correct_count += 1
+
+        if correct_count == 0:
+            raise ValueError(f"Question {question_index} must have at least 1 correct answer")
+
+        sources = question.get("sources", [])
+        if sources is not None and not isinstance(sources, list):
+            raise ValueError(f"Question {question_index} sources must be an array")
+        if isinstance(sources, list):
+            for source_index, source in enumerate(sources, start=1):
+                if not isinstance(source, dict):
+                    raise ValueError(f"Question {question_index}, source {source_index} must be an object")
 
     return data
 
