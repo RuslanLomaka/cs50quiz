@@ -206,7 +206,8 @@ If you are Gemini AI, do not start an interactive quiz in the chat. Only return 
 
 STRICT RULES:
 - Ask questions one-by-one (do NOT ask multiple questions at once).
-- Keep every setup question extremely short and simple.
+- Keep every setup question clear, friendly, and easy to answer.
+- The setup chat may feel natural and helpful, but the final generated output must stay strict JSON only.
 - Prefer yes/no questions or one-word-answer questions whenever possible.
 - Wait for my reply after each question.
 - Do NOT generate the quiz until you have all required info.
@@ -333,12 +334,12 @@ QUIZ_UI_TEXT = {
 
 INTERACTION FLOW:
 1) Ask ONLY this first question:
-"Topic?"
+"What topic do you want for your quiz?"
 
 Wait for my reply.
 
 2) Then ask ONLY this second question:
-"Difficulty? (easy/medium/hard)"
+"Who should this quiz be for, and how hard should it feel? For example: kids, complete beginners, students, experienced people, easy, medium, hard, funny, serious, or any style you want."
 
 Wait for my reply.
 
@@ -348,7 +349,10 @@ Wait for my reply.
 Wait for my reply.
 
 4) Then ask ONLY this fourth question:
-"Generation mode? (sources = I will do mini research and provide internet links so you can check the answers / ai = I will use general AI knowledge to generate the quiz faster)"
+"Type yes if you want me to go to the internet and conduct mini research for your topic. This can make answers easier to check, but it may take some time. Type no if you want me to use my general AI knowledge. This is faster."
+
+Treat yes/research/sources as source-backed mode.
+Treat no/ai/basic/fast as base AI knowledge mode.
 
 Wait for my reply.
 
@@ -366,7 +370,8 @@ Wenn du Gemini AI bist, starte kein interaktives Quiz im Chat. Gib nur das final
 
 STRENGE REGELN:
 - Stelle Fragen einzeln nacheinander.
-- Halte jede Vorbereitungsfrage extrem kurz und einfach.
+- Halte jede Vorbereitungsfrage klar, freundlich und leicht zu beantworten.
+- Der Vorbereitungschat darf natürlich und hilfreich wirken, aber die finale Ausgabe muss strikt nur gültiges JSON sein.
 - Bevorzuge Ja/Nein-Fragen oder Ein-Wort-Antworten, wenn möglich.
 - Warte nach jeder Frage auf meine Antwort.
 - Generiere das Quiz erst, wenn du alle nötigen Informationen hast.
@@ -427,12 +432,12 @@ SCHEMA (GENAU EINHALTEN):
 
 ABLAUF:
 1) Stelle NUR diese erste Frage:
-"Thema?"
+"Welches Thema soll dein Quiz haben?"
 
 Warte auf meine Antwort.
 
 2) Stelle NUR diese zweite Frage:
-"Schwierigkeit? (leicht/mittel/schwer)"
+"Für wen soll dieses Quiz sein, und wie schwer soll es sich anfühlen? Zum Beispiel: Kinder, komplette Anfänger, Schüler, erfahrene Personen, leicht, mittel, schwer, lustig, ernst oder ein eigener Stil."
 
 Warte auf meine Antwort.
 
@@ -442,7 +447,10 @@ Warte auf meine Antwort.
 Warte auf meine Antwort.
 
 4) Stelle NUR diese vierte Frage:
-"Generierungsmodus? (quellen = ich recherchiere kurz und liefere Internetlinks zur Kontrolle / ai = ich nutze allgemeines AI-Wissen und generiere schneller)"
+"Tippe ja, wenn ich ins Internet gehen und eine Mini-Recherche zu deinem Thema machen soll. Dadurch lassen sich Antworten leichter prüfen, aber es kann etwas dauern. Tippe nein, wenn ich mein allgemeines AI-Wissen nutzen soll. Das ist schneller."
+
+Behandle ja/recherche/quellen als Quellenmodus.
+Behandle nein/ai/basis/schnell als allgemeinen AI-Wissensmodus.
 
 Warte auf meine Antwort.
 
@@ -460,7 +468,8 @@ Jede Frage mit mehreren richtigen Antworten muss genau 6 Antworten haben, mit 2 
 
 СУВОРІ ПРАВИЛА:
 - Став питання по одному.
-- Кожне підготовче питання має бути дуже коротким і простим.
+- Кожне підготовче питання має бути ясним, дружнім і простим для відповіді.
+- Підготовчий чат може звучати природно й допоміжно, але фінальна відповідь має бути строго тільки валідним JSON.
 - За можливості використовуй питання так/ні або питання з відповіддю одним словом.
 - Чекай моєї відповіді після кожного питання.
 - Не генеруй тест, доки не отримаєш усю потрібну інформацію.
@@ -521,12 +530,12 @@ Jede Frage mit mehreren richtigen Antworten muss genau 6 Antworten haben, mit 2 
 
 ПРОЦЕС:
 1) Постав ТІЛЬКИ це перше питання:
-"Тема?"
+"Яку тему ти хочеш для свого тесту?"
 
 Чекай моєї відповіді.
 
 2) Потім постав ТІЛЬКИ це друге питання:
-"Складність? (легко/середньо/складно)"
+"Для кого має бути цей тест і наскільки складним він має відчуватися? Наприклад: для дітей, для повних початківців, для студентів, для досвідчених людей, легко, середньо, складно, смішно, серйозно або будь-який стиль."
 
 Чекай моєї відповіді.
 
@@ -536,7 +545,10 @@ Jede Frage mit mehreren richtigen Antworten muss genau 6 Antworten haben, mit 2 
 Чекай моєї відповіді.
 
 4) Потім постав ТІЛЬКИ це четверте питання:
-"Режим генерації? (джерела = я зроблю коротке дослідження і дам інтернет-посилання для перевірки / ai = я використаю загальні AI-знання і згенерую швидше)"
+"Напиши так, якщо хочеш, щоб я вийшов в інтернет і зробив міні-дослідження для твоєї теми. Так відповіді буде легше перевірити, але це може зайняти трохи часу. Напиши ні, якщо хочеш, щоб я використав свої загальні AI-знання. Це швидше."
+
+Сприймай так/дослідження/джерела як режим із джерелами.
+Сприймай ні/ai/базово/швидко як режим загальних AI-знань.
 
 Чекай моєї відповіді.
 
