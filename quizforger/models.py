@@ -41,3 +41,22 @@ class Attempt(models.Model):
 
     def __str__(self) -> str:
         return f"{self.quiz_id}: {self.score}/{self.total}"
+
+
+class UserPreference(models.Model):
+    LANGUAGE_CHOICES = [
+        ("en", "English"),
+        ("de", "Deutsch"),
+        ("uk", "Українська"),
+    ]
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="quizforger_preference",
+    )
+    language = models.CharField(max_length=8, choices=LANGUAGE_CHOICES, default="en")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return f"{self.user}: {self.language}"

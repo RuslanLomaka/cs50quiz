@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Attempt, Quiz
+from .models import Attempt, Quiz, UserPreference
 
 
 @admin.register(Quiz)
@@ -17,3 +17,10 @@ class AttemptAdmin(admin.ModelAdmin):
     search_fields = ("quiz__title", "quiz__id", "user__username", "user__email")
     list_filter = ("created_at",)
     ordering = ("-created_at",)
+
+
+@admin.register(UserPreference)
+class UserPreferenceAdmin(admin.ModelAdmin):
+    list_display = ("user", "language", "updated_at")
+    search_fields = ("user__username", "user__email")
+    list_filter = ("language", "updated_at")

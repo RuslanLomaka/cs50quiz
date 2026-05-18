@@ -25,4 +25,5 @@ urlpatterns = [
     ),
     path("accounts/logout", auth_views.LogoutView.as_view(), name="logout"),
     path("accounts/signup", views.signup, name="signup"),
+    path("language", views.set_language, name="set_language"),
 ]

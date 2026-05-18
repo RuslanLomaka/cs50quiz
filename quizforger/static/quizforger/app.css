@@ -120,6 +120,14 @@ body::after {
   align-items: center;
 }
 
+.language-form {
+  margin: 0;
+}
+
+.language-select {
+  min-width: 8.5rem;
+}
+
 .app-card,
 .card,
 .list-group-item {

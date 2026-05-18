@@ -5,11 +5,14 @@ from django.db.models import Avg, Count, ExpressionWrapper, F, FloatField
 from django.http import Http404, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
 
 from .forms import SignUpForm
-from .models import Attempt, Quiz
+from .language import get_prompt_text, get_quiz_ui_text, get_request_language, get_ui_text, normalize_language
+from .models import Attempt, Quiz, UserPreference
 from .storage import save_new_quiz, update_quiz
 
 
@@ -96,13 +99,14 @@ def _quiz_cards_for_request(request, queryset):
 
 
 def quizzes_list(request):
+    ui = get_ui_text(get_request_language(request))
     quizzes = _quiz_cards_for_request(request, _quiz_list_queryset())
     return render(
         request,
         "quizforger/list.html",
         {
             "quizzes": quizzes,
-            "page_title": "All quizzes",
+            "page_title": ui["all_quizzes"],
             "active_list": "all",
         },
     )
@@ -110,13 +114,14 @@ def quizzes_list(request):
 
 @login_required
 def my_quizzes(request):
+    ui = get_ui_text(get_request_language(request))
     quizzes = _quiz_cards_for_request(request, _quiz_list_queryset().filter(owner=request.user))
     return render(
         request,
         "quizforger/list.html",
         {
             "quizzes": quizzes,
-            "page_title": "My quizzes",
+            "page_title": ui["my_quizzes"],
             "active_list": "mine",
         },
     )
@@ -130,6 +135,10 @@ def signup(request):
     form = SignUpForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         user = form.save()
+        UserPreference.objects.update_or_create(
+            user=user,
+            defaults={"language": get_request_language(request)},
+        )
         login(request, user)
         return redirect("quizzes_list")
 
@@ -138,12 +147,14 @@ def signup(request):
 
 @ensure_csrf_cookie
 def quiz_page(request, quiz_id):
+    language = get_request_language(request)
     quiz = _get_quiz_or_404(quiz_id)
     return render(
         request,
         "quizforger/quiz.html",
         {
             "quiz": quiz,
+            "quiz_ui": get_quiz_ui_text(language),
         },
     )
 
@@ -205,12 +216,14 @@ def quiz_attempt_create(request, quiz_id):
 @require_http_methods(["GET", "POST"])
 @login_required
 def quiz_new(request):
+    language = get_request_language(request)
     if request.method == "GET":
         return render(
             request,
             "quizforger/create.html",
             {
                 "json_value": "",
+                "prompt_text": get_prompt_text(language),
             },
         )
 
@@ -261,3 +274,26 @@ def quiz_delete(request, quiz_id):
 
     quiz.delete()
     return redirect("my_quizzes")
+
+
+@require_http_methods(["POST"])
+def set_language(request):
+    language = normalize_language(request.POST.get("language"))
+    request.session["language"] = language
+
+    if request.user.is_authenticated:
+        UserPreference.objects.update_or_create(
+            user=request.user,
+            defaults={"language": language},
+        )
+
+    fallback = reverse("quizzes_list")
+    next_url = request.POST.get("next") or fallback
+    if not url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = fallback
+
+    return redirect(next_url)

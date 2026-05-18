@@ -14,13 +14,13 @@
     <div class="col-lg-9 col-xl-8">
 
       <div class="mb-3">
-        <h1 id="title" class="h2 mb-0">Loading...</h1>
+        <h1 id="title" class="h2 mb-0">{{ ui.loading }}</h1>
       </div>
 
       <div id="quiz" class="vstack gap-3"></div>
 
       <div class="d-flex align-items-center gap-3 mt-4">
-        <button id="check" class="btn btn-primary">Check answers</button>
+        <button id="check" class="btn btn-primary">{{ ui.check_answers }}</button>
         <div id="result" class="fw-semibold"></div>
         <div id="attemptStatus" class="small text-muted"></div>
       </div>
@@ -30,5 +30,28 @@
 {% endblock %}
 
 {% block scripts %}
-  <script defer src="{% static 'quizforger/quiz.js' %}?v=20260424-1"></script>
+  <script>
+    window.QUIZFORGER_I18N = {
+      error: "{{ quiz_ui.error|escapejs }}",
+      quiz: "{{ quiz_ui.quiz|escapejs }}",
+      failedToSaveAttempt: "{{ quiz_ui.failed_to_save_attempt|escapejs }}",
+      sources: "{{ quiz_ui.sources|escapejs }}",
+      source: "{{ quiz_ui.source|escapejs }}",
+      gotRight: "{{ quiz_ui.got_right|escapejs }}",
+      missedQuestion: "{{ quiz_ui.missed_question|escapejs }}",
+      wrongAnswer: "{{ quiz_ui.wrong_answer|escapejs }}",
+      answerWas: "{{ quiz_ui.answer_was|escapejs }}",
+      answersWere: "{{ quiz_ui.answers_were|escapejs }}",
+      explanation: "{{ quiz_ui.explanation|escapejs }}",
+      missingQuizId: "{{ quiz_ui.missing_quiz_id|escapejs }}",
+      failedToLoadQuiz: "{{ quiz_ui.failed_to_load_quiz|escapejs }}",
+      multiNote: "{{ quiz_ui.multi_note|escapejs }}",
+      score: "{{ quiz_ui.score|escapejs }}",
+      attemptSaved: "{{ quiz_ui.attempt_saved|escapejs }}",
+      attemptNotCounted: "{{ quiz_ui.attempt_not_counted|escapejs }}",
+      couldNotSaveAttempt: "{{ quiz_ui.could_not_save_attempt|escapejs }}",
+      unknownError: "{{ quiz_ui.unknown_error|escapejs }}"
+    };
+  </script>
+  <script defer src="{% static 'quizforger/quiz.js' %}?v=20260518-1"></script>
 {% endblock %}

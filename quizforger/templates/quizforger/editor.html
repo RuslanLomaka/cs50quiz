@@ -1,18 +1,18 @@
 {% extends "quizforger/base.html" %}
 
-{% block title %}Edit quiz | QuizForger{% endblock %}
+{% block title %}{{ ui.edit_quiz }} | QuizForger{% endblock %}
 
 {% block content %}
   <div class="row justify-content-center">
     <div class="col-xl-10">
 
       <div class="d-flex align-items-center justify-content-between mb-3">
-        <h1 class="h3 mb-0">Edit quiz</h1>
+        <h1 class="h3 mb-0">{{ ui.edit_quiz }}</h1>
       </div>
 
       <div class="alert alert-info">
-        <strong>Fine-tune your quiz:</strong>
-        edit the title, questions, answers, and sources directly in the browser, then save your changes.
+        <strong>{{ ui.fine_tune_title }}</strong>
+        {{ ui.fine_tune_copy }}
       </div>
 
       <form method="post" class="card shadow-sm editor-shell" id="quizEditorForm">
@@ -21,29 +21,29 @@
 
         <div class="card-body">
           <div class="mb-4">
-            <label class="form-label fw-semibold" for="quizTitle">Quiz title</label>
+            <label class="form-label fw-semibold" for="quizTitle">{{ ui.quiz_title }}</label>
             <input
               id="quizTitle"
               type="text"
               class="form-control form-control-lg"
-              placeholder="Enter the quiz title"
+              placeholder="{{ ui.quiz_title_placeholder }}"
             >
           </div>
 
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
             <div>
-              <div class="fw-semibold">Questions</div>
-              <div class="text-muted small">Adjust each question in its own card.</div>
+              <div class="fw-semibold">{{ ui.questions }}</div>
+              <div class="text-muted small">{{ ui.questions_help }}</div>
             </div>
-            <button type="button" class="btn btn-outline-primary" id="addQuestionBtn">Add question</button>
+            <button type="button" class="btn btn-outline-primary" id="addQuestionBtn">{{ ui.add_question }}</button>
           </div>
 
           <div id="editorError" class="alert alert-danger d-none"></div>
           <div id="questionsContainer" class="vstack gap-3"></div>
 
           <div class="d-flex gap-2 mt-4">
-            <button class="btn btn-primary" type="submit">Save changes</button>
-            <a class="btn btn-outline-secondary" href="{% url 'quiz_page' quiz.id %}">Cancel</a>
+            <button class="btn btn-primary" type="submit">{{ ui.save_changes }}</button>
+            <a class="btn btn-outline-secondary" href="{% url 'quiz_page' quiz.id %}">{{ ui.cancel }}</a>
           </div>
         </div>
       </form>

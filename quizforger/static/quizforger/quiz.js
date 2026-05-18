@@ -1,6 +1,11 @@
 ﻿// quizforger/static/quizforger/quiz.js
 let QUIZ = null;
 
+const I18N = window.QUIZFORGER_I18N || {};
+function t(key, fallback) {
+  return I18N[key] || fallback;
+}
+
 function getCookie(name) {
   const cookieValue = document.cookie
     .split(";")
@@ -56,7 +61,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const attemptStatusEl = document.querySelector("#attemptStatus");
 
   const setError = (msg) => {
-    if (titleEl) titleEl.textContent = "Error";
+    if (titleEl) titleEl.textContent = t("error", "Error");
     if (quizEl) quizEl.textContent = msg;
     if (resultEl) resultEl.textContent = "";
   };
@@ -115,7 +120,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     if (!res.ok) {
       const message = (await res.text()).trim();
-      throw new Error(message || "Failed to save attempt");
+      throw new Error(message || t("failedToSaveAttempt", "Failed to save attempt"));
     }
 
     return res.json();
@@ -144,7 +149,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const heading = document.createElement("div");
       heading.className = "fw-semibold small text-uppercase text-muted mb-2";
-      heading.textContent = "Sources";
+      heading.textContent = t("sources", "Sources");
       wrap.appendChild(heading);
 
       const list = document.createElement("div");
@@ -157,7 +162,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         link.href = source.normalizedUrl;
         link.target = "_blank";
         link.rel = "noreferrer noopener";
-        link.textContent = source.title?.trim() || `Source ${sourceIndex + 1}`;
+        link.textContent = source.title?.trim() || `${t("source", "Source")} ${sourceIndex + 1}`;
         item.appendChild(link);
 
         if (source.note) {
@@ -185,11 +190,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     let lead;
     if (status === "correct") {
-      lead = "You got this right.";
+      lead = t("gotRight", "You got this right.");
     } else if (status === "missed") {
-      lead = `You missed this question. The correct ${correctLabels.length > 1 ? "answers were" : "answer was"}: ${correctText}.`;
+      lead = `${t("missedQuestion", "You missed this question.")} ${correctLabels.length > 1 ? t("answersWere", "The correct answers were") : t("answerWas", "The correct answer was")}: ${correctText}.`;
     } else {
-      lead = `Your answer was not correct. The correct ${correctLabels.length > 1 ? "answers were" : "answer was"}: ${correctText}.`;
+      lead = `${t("wrongAnswer", "Your answer was not correct.")} ${correctLabels.length > 1 ? t("answersWere", "The correct answers were") : t("answerWas", "The correct answer was")}: ${correctText}.`;
     }
 
     const wrap = document.createElement("div");
@@ -206,7 +211,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const explanationTitle = document.createElement("div");
       explanationTitle.className = "small fw-semibold text-uppercase text-muted mb-1";
-      explanationTitle.textContent = "Explanation";
+      explanationTitle.textContent = t("explanation", "Explanation");
       explanationWrap.appendChild(explanationTitle);
 
       const explanationEl = document.createElement("div");
@@ -221,14 +226,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   try {
     const quizId = window.QUIZ_ID;
-    if (!quizId) throw new Error("QUIZ_ID is missing");
+    if (!quizId) throw new Error(t("missingQuizId", "QUIZ_ID is missing"));
 
     const res = await fetch(`/api/quizzes/${quizId}`);
-    if (!res.ok) throw new Error("Failed to load quiz");
+    if (!res.ok) throw new Error(t("failedToLoadQuiz", "Failed to load quiz"));
 
     QUIZ = await res.json();
 
-    if (titleEl) titleEl.textContent = QUIZ.title ?? "Quiz";
+    if (titleEl) titleEl.textContent = QUIZ.title ?? t("quiz", "Quiz");
     if (!quizEl) return;
 
     quizEl.innerHTML = "";
@@ -249,7 +254,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (isMultipleAnswerQuestion(question)) {
         const multiNote = document.createElement("div");
         multiNote.className = "small text-muted mt-2";
-        multiNote.textContent = "This question has more than 1 correct answer.";
+        multiNote.textContent = t("multiNote", "This question has more than 1 correct answer.");
         body.appendChild(multiNote);
       }
 
@@ -342,20 +347,20 @@ document.addEventListener("DOMContentLoaded", async () => {
           }
         });
 
-        if (resultEl) resultEl.textContent = `Score: ${correctCount}/${total}`;
+        if (resultEl) resultEl.textContent = `${t("score", "Score")}: ${correctCount}/${total}`;
         renderSources(QUIZ.questions ?? []);
 
         if (total > 0) {
           try {
             const stats = await saveAttempt(quizId, correctCount, total, answeredCount);
-            setAttemptStatus(stats.message || (stats.saved ? "Attempt saved." : "Attempt not counted."));
+            setAttemptStatus(stats.message || (stats.saved ? t("attemptSaved", "Attempt saved.") : t("attemptNotCounted", "Attempt not counted.")));
           } catch (err) {
-            setAttemptStatus(err?.message ?? "Could not save attempt.", true);
+            setAttemptStatus(err?.message ?? t("couldNotSaveAttempt", "Could not save attempt."), true);
           }
         }
       });
     }
   } catch (err) {
-    setError(err?.message ?? "Unknown error");
+    setError(err?.message ?? t("unknownError", "Unknown error"));
   }
 });

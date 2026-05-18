@@ -1,156 +1,38 @@
 {% extends "quizforger/base.html" %}
 
-{% block title %}Create quiz | QuizForger{% endblock %}
+{% block title %}{{ ui.create_quiz }} | QuizForger{% endblock %}
 
 {% block content %}
   <div class="row justify-content-center">
     <div class="col-lg-10 col-xl-9">
 
       <div class="d-flex align-items-center justify-content-between mb-3">
-        <h1 class="h3 mb-0">Create quiz</h1>
+        <h1 class="h3 mb-0">{{ ui.create_quiz }}</h1>
       </div>
 
       <div class="alert alert-info">
-        <strong>How this works:</strong>
-        1. Press <strong>Copy prompt</strong>.
-        2. Go to the AI tool of your choice and paste the prompt there.
-        3. Let the AI generate the quiz, then copy the result it gives you.
-        It may look a bit like computer code, but do not worry, you do not need to write any code yourself.
-        4. Paste that result into the box below and press <strong>Create quiz</strong>.
+        <strong>{{ ui.how_this_works }}</strong>
+        {{ ui.create_steps }}
       </div>
 
       <div class="d-flex flex-wrap gap-2 mb-3">
-        <a class="btn btn-outline-secondary btn-sm" href="https://chatgpt.com/" target="_blank" rel="noreferrer noopener">Open ChatGPT</a>
-        <a class="btn btn-outline-secondary btn-sm" href="https://gemini.google.com/" target="_blank" rel="noreferrer noopener">Open Gemini</a>
-        <a class="btn btn-outline-secondary btn-sm" href="https://claude.ai/" target="_blank" rel="noreferrer noopener">Open Claude</a>
+        <a class="btn btn-outline-secondary btn-sm" href="https://chatgpt.com/" target="_blank" rel="noreferrer noopener">{{ ui.open_chatgpt }}</a>
+        <a class="btn btn-outline-secondary btn-sm" href="https://gemini.google.com/" target="_blank" rel="noreferrer noopener">{{ ui.open_gemini }}</a>
+        <a class="btn btn-outline-secondary btn-sm" href="https://claude.ai/" target="_blank" rel="noreferrer noopener">{{ ui.open_claude }}</a>
       </div>
 
       <div class="card shadow-sm mb-3">
         <div class="card-body py-3">
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
             <details class="flex-grow-1" id="promptDetails">
-              <summary class="fw-semibold prompt-summary">See full AI prompt</summary>
+              <summary class="fw-semibold prompt-summary">{{ ui.see_prompt }}</summary>
               <div class="mt-3">
-                <textarea id="promptText" class="form-control font-monospace" rows="20" readonly>
-You are QuizForger JSON Builder.
-
-GOAL:
-Build ONE ready-to-use JSON quiz file for a web app.
-Output easy-to-copy JSON text only.
-If you are Gemini AI, do not start an interactive quiz in the chat. Only return the final JSON.
-
-STRICT RULES:
-- Ask questions one-by-one (do NOT ask multiple questions at once).
-- Keep every setup question extremely short and simple.
-- Prefer yes/no questions or one-word-answer questions whenever possible.
-- Wait for my reply after each question.
-- Do NOT generate the quiz until you have all required info.
-- When you generate the quiz: output ONLY valid JSON (no markdown, no explanations, no extra text).
-- Use double quotes for all keys/strings. UTF-8 text.
-- Create exactly N questions (N comes from me).
-- At least 30% of the questions must be multiple-answer questions.
-- Single-answer questions should usually have 4 answers.
-- Multiple-answer questions must always have exactly 6 answers.
-- Each question must have at least 2 answers.
-- Each question must have at least 1 correct answer.
-- Multiple-answer questions must always have 2 or 3 correct answers.
-- Use multiple-answer questions naturally when the topic supports them.
-- If a question has exactly 1 correct answer, the app will show radio buttons.
-- If a question has more than 1 correct answer, the app will show checkboxes.
-- Question IDs must be integers from 1 to N.
-- Randomize the position of the correct answer across questions.
-- Do NOT put the correct answer always first, always last, or in any obvious pattern.
-- Make wrong answers plausible and not joke answers unless I explicitly ask for that style.
-- Vary the question style when appropriate.
-- Some questions can be normal multiple choice.
-- Some questions can use a sentence with a missing word or missing phrase.
-- The missing part does NOT always have to be a single word. It can be a short phrase when that feels natural.
-- Keep the question text readable for a quiz player.
-- Avoid making every question feel mechanically identical.
-- Add a short explanation for each question.
-- The explanation should be short, clear, and useful for learning.
-- The explanation should say why the correct answer is right and why the wrong answers are wrong.
-- If there are multiple correct answers, explain why those answers are correct as a group.
-- If I choose source-backed mode, include sources for each question whenever reasonably possible.
-- If I choose base AI knowledge mode, sources are optional.
-- For sources.url, output only the plain URL, not markdown.
-
-SCHEMA (MUST FOLLOW EXACTLY):
-{
-  "title": "string",
-  "questions": [
-    {
-      "id": 1,
-      "question": "string",
-      "answers": [
-        { "text": "string", "correct": false },
-        { "text": "string", "correct": true },
-        { "text": "string", "correct": false },
-        { "text": "string", "correct": false }
-      ],
-      "explanation": "string",
-      "sources": [
-        {
-          "title": "string",
-          "url": "https://example.com",
-          "note": "optional short note"
-        }
-      ]
-    },
-    {
-      "id": 2,
-      "question": "Which of these statements about planets are correct?",
-      "answers": [
-        { "text": "Earth orbits the Sun.", "correct": true },
-        { "text": "Mars is known as the Red Planet.", "correct": true },
-        { "text": "Venus is the coldest planet in the Solar System.", "correct": false },
-        { "text": "Jupiter is smaller than Mercury.", "correct": false },
-        { "text": "Saturn is famous for its ring system.", "correct": true },
-        { "text": "The Moon is a planet.", "correct": false }
-      ],
-      "explanation": "Earth, Mars, and Saturn match well-known facts. Venus is extremely hot, Jupiter is far larger than Mercury, and the Moon is not a planet.",
-      "sources": [
-        {
-          "title": "string",
-          "url": "https://example.com",
-          "note": "optional short note"
-        }
-      ]
-    }
-  ]
-}
-
-INTERACTION FLOW:
-1) Ask ONLY this first question:
-"Topic?"
-
-Wait for my reply.
-
-2) Then ask ONLY this second question:
-"Difficulty? (easy/medium/hard)"
-
-Wait for my reply.
-
-3) Then ask ONLY this third question:
-"How many questions?"
-
-Wait for my reply.
-
-4) Then ask ONLY this fourth question:
-"Generation mode? (sources = I will do mini research and provide internet links so you can check the answers / ai = I will use general AI knowledge to generate the quiz faster)"
-
-Wait for my reply.
-
-5) Then generate the final JSON that matches the schema and rules above, with questions based on my description.
-Make sure the JSON includes explanations.
-Make sure at least 30% of the questions are multiple-answer questions.
-Every multiple-answer question must have exactly 6 answers, with 2 or 3 correct answers.
-                </textarea>
+                <textarea id="promptText" class="form-control font-monospace" rows="20" readonly>{{ prompt_text }}</textarea>
               </div>
             </details>
 
             <button type="button" class="btn btn-outline-primary btn-sm" id="copyPromptBtn">
-              Copy prompt
+              {{ ui.copy_prompt }}
             </button>
           </div>
         </div>
@@ -160,18 +42,18 @@ Every multiple-answer question must have exactly 6 answers, with 2 or 3 correct 
         {% csrf_token %}
         <div class="card-body">
           <div class="mb-3">
-            <label class="form-label fw-semibold">Quiz JSON</label>
+            <label class="form-label fw-semibold">{{ ui.quiz_json }}</label>
             <textarea
               name="json"
               class="form-control font-monospace"
               rows="16"
-              placeholder="Paste your generated quiz data here"
+              placeholder="{{ ui.paste_json }}"
             >{{ json_value|default:'' }}</textarea>
           </div>
 
           <div class="d-flex gap-2">
-            <button class="btn btn-primary" type="submit">Create quiz</button>
-            <a class="btn btn-outline-secondary" href="{% url 'quizzes_list' %}">Cancel</a>
+            <button class="btn btn-primary" type="submit">{{ ui.create_quiz }}</button>
+            <a class="btn btn-outline-secondary" href="{% url 'quizzes_list' %}">{{ ui.cancel }}</a>
           </div>
         </div>
       </form>
@@ -234,18 +116,18 @@ Every multiple-answer question must have exactly 6 answers, with 2 or 3 correct 
         const copied = await copyPrompt();
         const old = copyBtn.textContent;
         if (copied) {
-          copyBtn.textContent = "Copied!";
+          copyBtn.textContent = "{{ ui.copied|escapejs }}";
           setTimeout(() => (copyBtn.textContent = old), 900);
           return;
         }
 
         prepareManualCopy();
-        copyBtn.textContent = "Tap and hold selected text";
+        copyBtn.textContent = "{{ ui.manual_copy|escapejs }}";
         setTimeout(() => (copyBtn.textContent = old), 1800);
       } catch (e) {
         prepareManualCopy();
-        copyBtn.textContent = "Tap and hold selected text";
-        setTimeout(() => (copyBtn.textContent = "Copy prompt"), 1800);
+        copyBtn.textContent = "{{ ui.manual_copy|escapejs }}";
+        setTimeout(() => (copyBtn.textContent = "{{ ui.copy_prompt|escapejs }}"), 1800);
       }
     });
   })();
