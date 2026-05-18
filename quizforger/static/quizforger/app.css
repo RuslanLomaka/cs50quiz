@@ -197,6 +197,40 @@ textarea.form-control {
   border-color: transparent;
 }
 
+.create-cta {
+  animation: createCtaPulse 2.4s ease-in-out infinite;
+  position: relative;
+}
+
+.create-cta:hover,
+.create-cta:focus-visible {
+  animation-play-state: paused;
+  transform: translateY(-1px);
+}
+
+@keyframes createCtaPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 8px 18px color-mix(in srgb, var(--app-accent) 18%, transparent),
+      0 0 0 0 color-mix(in srgb, var(--app-accent) 38%, transparent);
+    filter: brightness(1);
+  }
+
+  50% {
+    box-shadow:
+      0 12px 26px color-mix(in srgb, var(--app-accent) 34%, transparent),
+      0 0 0 0.45rem color-mix(in srgb, var(--app-accent) 0%, transparent);
+    filter: brightness(1.09);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .create-cta {
+    animation: none;
+  }
+}
+
 .btn-outline-secondary,
 .btn-outline-dark,
 .btn-outline-danger {
