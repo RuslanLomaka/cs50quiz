@@ -1,10 +1,12 @@
 from django.contrib.auth import views as auth_views
+from django.shortcuts import redirect
 from django.urls import path
 
 from . import views
 from .forms import EmailAuthenticationForm
 
 urlpatterns = [
+    path("", lambda request: redirect("quizzes_list"), name="home"),
     path("quizzes", views.quizzes_list, name="quizzes_list"),
     path("quizzes/mine", views.my_quizzes, name="my_quizzes"),
     path("quizzes/new", views.quiz_new, name="quiz_new"),

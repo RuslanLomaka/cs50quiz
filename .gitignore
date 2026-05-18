@@ -13,6 +13,7 @@ __pycache__/
 
 # Local secrets and deployment output
 .env
+deployment/quizforger.env
 staticfiles/
 
 # Migrations
