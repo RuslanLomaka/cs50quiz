@@ -46,6 +46,14 @@ class QuizJsonExtractionTests(SimpleTestCase):
         with self.assertRaisesMessage(ValueError, "at most"):
             validate_quiz_json(data)
 
+    def test_accepts_existing_large_quiz(self):
+        question = quiz_document()["questions"][1]
+        data = {"title": "Legacy vocabulary quiz", "questions": [question] * 140}
+
+        cleaned = validate_quiz_json(data)
+
+        self.assertEqual(len(cleaned["questions"]), 140)
+
     def test_rejects_unsafe_source_scheme(self):
         data = quiz_document()
         data["questions"][0]["sources"][0]["url"] = "javascript:alert(1)"
