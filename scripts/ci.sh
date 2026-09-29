@@ -38,4 +38,4 @@ export DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS=True
 export DJANGO_SECURE_HSTS_PRELOAD=True
 
 "$python_bin" manage.py collectstatic --noinput
-"$python_bin" manage.py check --deploy
+"$python_bin" manage.py check --deploy --fail-level WARNING

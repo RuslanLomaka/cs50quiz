@@ -4,7 +4,7 @@ from pathlib import Path
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-from quizforger.database_backups import sqlite_integrity_check
+from quizforger.database_backups import sqlite_integrity_check, sqlite_read_only_uri
 
 
 class Command(BaseCommand):
@@ -25,10 +25,11 @@ class Command(BaseCommand):
         if integrity != "ok":
             raise CommandError(f"SQLite integrity check failed: {integrity}")
 
-        connection = sqlite3.connect(f"file:{database_path.resolve().as_posix()}?mode=ro", uri=True)
+        connection = sqlite3.connect(sqlite_read_only_uri(database_path), uri=True)
         try:
             invalid_attempts = connection.execute(
-                "SELECT COUNT(1) FROM quizforger_attempt WHERE total = 0 OR score > total"
+                "SELECT COUNT(1) FROM quizforger_attempt "
+                "WHERE total <= 0 OR score < 0 OR score > total"
             ).fetchone()[0]
             duplicate_email_groups = connection.execute(
                 "SELECT COUNT(1) FROM ("

@@ -5,7 +5,11 @@ from pathlib import Path
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.test import SimpleTestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
+from django.utils import timezone
+
+from quizforger.models import Quiz
+from quizforger.tests.factories import quiz_document
 
 
 class DatabaseCommandTests(SimpleTestCase):
@@ -73,3 +77,34 @@ class DatabaseCommandTests(SimpleTestCase):
 
             self.assertIn("SQLite integrity: ok", output.getvalue())
             self.assertIn("Duplicate case-insensitive email groups: 1", output.getvalue())
+
+
+class QuizCommandTests(TestCase):
+    def test_check_quizzes_accepts_valid_documents(self):
+        document = quiz_document()
+        now = timezone.now()
+        Quiz.objects.create(
+            id="valid",
+            title=document["title"],
+            content=document,
+            created_at=now,
+            updated_at=now,
+        )
+        output = io.StringIO()
+
+        call_command("check_quizzes", stdout=output)
+
+        self.assertIn("Stored quizzes valid: 1", output.getvalue())
+
+    def test_check_quizzes_reports_invalid_documents(self):
+        now = timezone.now()
+        Quiz.objects.create(
+            id="invalid",
+            title="Invalid",
+            content={"questions": []},
+            created_at=now,
+            updated_at=now,
+        )
+
+        with self.assertRaisesMessage(CommandError, "invalid"):
+            call_command("check_quizzes")

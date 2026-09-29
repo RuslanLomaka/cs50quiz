@@ -68,7 +68,8 @@ GitHub Actions tests Python 3.10, 3.12, and 3.14. Its quality job uses `scripts/
 
 ## Production configuration
 
-Copy `deployment/quizforger.env.example` to a private `.env` file and set at least:
+For production, install `deployment/quizforger.env.example` as the private
+`/etc/quizforger/quizforger.env` file described in the deployment runbook and set at least:
 
 - `DJANGO_SECRET_KEY`
 - `DJANGO_ALLOWED_HOSTS`

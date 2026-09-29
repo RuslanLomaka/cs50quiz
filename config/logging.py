@@ -15,29 +15,21 @@ class RequestContextFilter(logging.Filter):
 class JsonFormatter(logging.Formatter):
     """Small dependency-free JSON formatter for service logs."""
 
-    RESERVED = {
-        "args",
-        "asctime",
-        "created",
-        "exc_info",
-        "exc_text",
-        "filename",
-        "funcName",
-        "levelname",
-        "levelno",
-        "lineno",
-        "message",
-        "module",
-        "msecs",
-        "msg",
-        "name",
-        "pathname",
-        "process",
-        "processName",
-        "relativeCreated",
-        "stack_info",
-        "thread",
-        "threadName",
+    SAFE_EXTRA_FIELDS = {
+        "actor_id",
+        "answered_count",
+        "bytes",
+        "destination",
+        "event",
+        "owner_id",
+        "path",
+        "quiz_id",
+        "reason",
+        "score",
+        "source",
+        "status_code",
+        "total",
+        "user_id",
     }
 
     def format(self, record: logging.LogRecord) -> str:
@@ -48,9 +40,9 @@ class JsonFormatter(logging.Formatter):
             "message": record.getMessage(),
             "request_id": getattr(record, "request_id", "-"),
         }
-        for key, value in record.__dict__.items():
-            if key not in self.RESERVED and not key.startswith("_") and key != "request_id":
-                payload[key] = value
+        for key in self.SAFE_EXTRA_FIELDS:
+            if hasattr(record, key):
+                payload[key] = getattr(record, key)
         if record.exc_info:
             payload["exception"] = self.formatException(record.exc_info)
         return json.dumps(payload, ensure_ascii=False, default=str)

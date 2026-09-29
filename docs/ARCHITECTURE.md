@@ -26,7 +26,7 @@ QuizForger is a self-hostable quiz authoring and playing service. Authors import
 
 ## Data durability
 
-SQLite remains a reasonable default for a single low-traffic Raspberry Pi. The production database path is outside the Git checkout. The service creates an online, integrity-checked backup before startup, and a systemd timer repeats the backup daily. Retention keeps the newest 30 snapshots.
+SQLite remains a reasonable default for a single low-traffic Raspberry Pi. The production database path is outside the Git checkout. The release script creates an online, integrity-checked backup before changing code, and a systemd timer repeats the backup daily. Backups do not run in the web-service restart loop, so repeated startup failures cannot consume the retained recovery snapshots. Retention keeps the newest 30 snapshots.
 
 This reduces data-loss risk but cannot guarantee zero loss. Backups must also be copied off-device and restore drills must be performed. PostgreSQL is the recommended next step for multiple app hosts or sustained concurrent writes.
 

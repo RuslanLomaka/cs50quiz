@@ -1,19 +1,23 @@
 import logging
 import os
 import sqlite3
+import tempfile
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 
+def sqlite_read_only_uri(database_path: Path) -> str:
+    """Return an encoded absolute SQLite URI that cannot reinterpret path characters."""
+
+    return f"{database_path.resolve().as_uri()}?mode=ro"
+
+
 def sqlite_integrity_check(database_path: Path) -> str:
-    database_path = database_path.resolve()
-    connection = sqlite3.connect(f"file:{database_path.as_posix()}?mode=ro", uri=True)
-    try:
+    with closing(sqlite3.connect(sqlite_read_only_uri(database_path), uri=True)) as connection:
         return str(connection.execute("PRAGMA integrity_check").fetchone()[0])
-    finally:
-        connection.close()
 
 
 def backup_sqlite_database(database_path: Path, backup_dir: Path, *, keep: int = 30) -> Path:
@@ -33,28 +37,37 @@ def backup_sqlite_database(database_path: Path, backup_dir: Path, *, keep: int =
     while destination.exists():
         destination = backup_dir / f"quizforger-{timestamp}-{counter}.sqlite3"
         counter += 1
-    temporary = destination.with_suffix(".sqlite3.tmp")
-
-    source = sqlite3.connect(f"file:{database_path.as_posix()}?mode=ro", uri=True, timeout=30)
-    target = sqlite3.connect(temporary)
+    temporary = None
     try:
-        source.backup(target)
-        target.commit()
-        integrity = str(target.execute("PRAGMA integrity_check").fetchone()[0])
-        if integrity != "ok":
-            raise RuntimeError(f"Backup integrity check failed: {integrity}")
-    finally:
-        target.close()
-        source.close()
+        with tempfile.NamedTemporaryFile(
+            prefix=f".{destination.stem}-",
+            suffix=".tmp",
+            dir=backup_dir,
+            delete=False,
+        ) as temporary_file:
+            temporary = Path(temporary_file.name)
+        temporary.chmod(0o600)
 
-    os.replace(temporary, destination)
-    try:
-        destination.chmod(0o600)
-    except OSError:
-        logger.warning(
-            "backup_permissions_not_changed",
-            extra={"event": "backup_permissions_not_changed", "path": str(destination)},
-        )
+        with (
+            closing(
+                sqlite3.connect(sqlite_read_only_uri(database_path), uri=True, timeout=30)
+            ) as source,
+            closing(sqlite3.connect(temporary)) as target,
+        ):
+            source.backup(target)
+            target.commit()
+            integrity = str(target.execute("PRAGMA integrity_check").fetchone()[0])
+            if integrity != "ok":
+                raise RuntimeError(f"Backup integrity check failed: {integrity}")
+
+        # Publish only after restrictive permissions and verification both succeed.
+        temporary.chmod(0o600)
+        os.replace(temporary, destination)
+        temporary = None
+    except BaseException:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+        raise
 
     backup_size = destination.stat().st_size
     snapshots = sorted(

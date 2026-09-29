@@ -3,22 +3,25 @@ Description=QuizForger Django app
 After=network.target
 
 [Service]
-User=pi
-Group=www-data
-WorkingDirectory=/home/pi/apps/cs50quiz
-EnvironmentFile=/home/pi/apps/cs50quiz/.env
+User=quizforger
+Group=quizforger
+WorkingDirectory=/srv/quizforger/app
+EnvironmentFile=/etc/quizforger/quizforger.env
 Environment=PYTHONUNBUFFERED=1
-ExecStartPre=/home/pi/apps/cs50quiz/.venv/bin/python manage.py backup_database --if-exists --keep 30
-ExecStart=/home/pi/apps/cs50quiz/.venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8001 --workers 2 --timeout 60 --access-logfile - --error-logfile -
-Restart=always
+ExecStartPre=/srv/quizforger/app/.venv/bin/python manage.py check_database
+ExecStartPre=/srv/quizforger/app/.venv/bin/python manage.py check_quizzes
+ExecStart=/srv/quizforger/app/.venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8001 --workers 2 --timeout 60 --graceful-timeout 60 --access-logfile - --error-logfile -
+Restart=on-failure
 RestartSec=5
-TimeoutStopSec=30
-KillSignal=SIGQUIT
+TimeoutStopSec=70
+KillSignal=SIGTERM
 UMask=0077
 NoNewPrivileges=true
 PrivateTmp=true
-ProtectSystem=full
-ProtectHome=read-only
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/srv/quizforger/app /etc/quizforger/quizforger.env
+ReadWritePaths=/var/lib/quizforger
 
 [Install]
 WantedBy=multi-user.target

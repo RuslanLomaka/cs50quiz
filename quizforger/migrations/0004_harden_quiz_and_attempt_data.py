@@ -1,6 +1,13 @@
 from django.db import migrations, models
 
 
+def clean_invalid_attempts(apps, schema_editor):
+    Attempt = apps.get_model("quizforger", "Attempt")
+    Attempt.objects.filter(total__lte=0).delete()
+    Attempt.objects.filter(score__lt=0).update(score=0)
+    Attempt.objects.filter(score__gt=models.F("total")).update(score=models.F("total"))
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -8,6 +15,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(clean_invalid_attempts, migrations.RunPython.noop),
         migrations.AddField(
             model_name="quiz",
             name="archived_at",
