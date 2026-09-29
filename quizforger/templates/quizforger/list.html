@@ -21,7 +21,7 @@
                 <div class="text-muted small mt-1">
                   {{ ui.created_by }}
                   {% if quiz.owner %}
-                    {{ quiz.owner.username }}
+                    {{ ui.member }}
                   {% else %}
                     {{ ui.guest }}
                   {% endif %}

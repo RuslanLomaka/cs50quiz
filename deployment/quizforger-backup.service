@@ -1,0 +1,16 @@
+[Unit]
+Description=Create a verified QuizForger database backup
+
+[Service]
+Type=oneshot
+User=pi
+Group=www-data
+WorkingDirectory=/home/pi/apps/cs50quiz
+EnvironmentFile=/home/pi/apps/cs50quiz/.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/pi/apps/cs50quiz/.venv/bin/python manage.py backup_database --keep 30
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only

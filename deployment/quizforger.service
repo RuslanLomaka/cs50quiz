@@ -7,9 +7,18 @@ User=pi
 Group=www-data
 WorkingDirectory=/home/pi/apps/cs50quiz
 EnvironmentFile=/home/pi/apps/cs50quiz/.env
-ExecStart=/home/pi/apps/cs50quiz/.venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8001 --workers 2 --timeout 60
+Environment=PYTHONUNBUFFERED=1
+ExecStartPre=/home/pi/apps/cs50quiz/.venv/bin/python manage.py backup_database --if-exists --keep 30
+ExecStart=/home/pi/apps/cs50quiz/.venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8001 --workers 2 --timeout 60 --access-logfile - --error-logfile -
 Restart=always
 RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGQUIT
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
 
 [Install]
 WantedBy=multi-user.target

@@ -5,7 +5,7 @@
 
 {% block head %}
   <script>
-    window.QUIZ_ID = "{{ quiz.id }}";
+    window.QUIZ_ID = "{{ quiz.id|escapejs }}";
   </script>
 {% endblock %}
 
@@ -53,5 +53,5 @@
       unknownError: "{{ quiz_ui.unknown_error|escapejs }}"
     };
   </script>
-  <script defer src="{% static 'quizforger/quiz.js' %}?v=20260518-1"></script>
+  <script defer src="{% static 'quizforger/quiz.js' %}?v=20260929-1"></script>
 {% endblock %}

@@ -1,0 +1,20 @@
+name: Feature request
+description: Propose a product improvement
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: Problem
+      description: What user problem should QuizForger solve?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposed outcome
+      description: Describe the desired behavior, not only a technical implementation.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Alternatives considered

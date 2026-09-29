@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
 
 def _env_bool(name: str, default: bool = False) -> bool:
     value = os.environ.get(name)
@@ -27,6 +29,17 @@ def _env_list(name: str, default: list[str]) -> list[str]:
         return default
     return [item.strip() for item in value.split(",") if item.strip()]
 
+
+def _env_float(name: str, default: float = 0.0) -> float:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except ValueError as exc:
+        raise ImproperlyConfigured(f"{name} must be a number") from exc
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -35,13 +48,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-dk=4t0dn^!^w4qub+w-xkq#aduatba0%g-l#ao%6*9c_b@q3@8",
-)
+DEVELOPMENT_SECRET_KEY = "django-insecure-development-only-not-for-production"
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", DEVELOPMENT_SECRET_KEY)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = _env_bool("DJANGO_DEBUG", True)
+
+if not DEBUG and SECRET_KEY == DEVELOPMENT_SECRET_KEY:
+    raise ImproperlyConfigured("DJANGO_SECRET_KEY is required when DJANGO_DEBUG is false")
 
 ALLOWED_HOSTS = _env_list("DJANGO_ALLOWED_HOSTS", ["127.0.0.1", "localhost", "192.168.0.37"])
 CSRF_TRUSTED_ORIGINS = _env_list("DJANGO_CSRF_TRUSTED_ORIGINS", [])
@@ -50,57 +64,70 @@ CSRF_TRUSTED_ORIGINS = _env_list("DJANGO_CSRF_TRUSTED_ORIGINS", [])
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-
-    'quizforger',
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "quizforger",
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "config.middleware.RequestIdMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    *([] if DEBUG else ["whitenoise.middleware.WhiteNoiseMiddleware"]),
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = 'config.urls'
+ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-                'quizforger.context_processors.language_context',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+                "quizforger.context_processors.language_context",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'config.wsgi.application'
+WSGI_APPLICATION = "config.wsgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+DATABASE_PATH = Path(os.environ.get("DJANGO_DATABASE_PATH", BASE_DIR / "db.sqlite3")).expanduser()
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": DATABASE_PATH,
+        "OPTIONS": {
+            "timeout": 20,
+            "transaction_mode": "IMMEDIATE",
+        },
     }
 }
+QUIZFORGER_BACKUP_DIR = Path(
+    os.environ.get("QUIZFORGER_BACKUP_DIR", BASE_DIR / "backups")
+).expanduser()
+
+# Bound unauthenticated and pasted-quiz request bodies before application parsing.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 1_048_576
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 1_000
 
 
 # Password validation
@@ -108,16 +135,16 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -125,9 +152,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
@@ -137,12 +164,16 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 STORAGES = {
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": (
+            "whitenoise.storage.CompressedStaticFilesStorage"
+            if DEBUG
+            else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        ),
     },
 }
 
@@ -150,19 +181,65 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = _env_bool("DJANGO_SECURE_SSL_REDIRECT", not DEBUG)
 SESSION_COOKIE_SECURE = _env_bool("DJANGO_SESSION_COOKIE_SECURE", not DEBUG)
 CSRF_COOKIE_SECURE = _env_bool("DJANGO_CSRF_COOKIE_SECURE", not DEBUG)
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
 SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_SECURE_HSTS_SECONDS", "0"))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = _env_bool("DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS", False)
 SECURE_HSTS_PRELOAD = _env_bool("DJANGO_SECURE_HSTS_PRELOAD", False)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+X_FRAME_OPTIONS = "DENY"
 
 AUTHENTICATION_BACKENDS = [
-    'quizforger.auth_backends.EmailOrUsernameModelBackend',
+    "quizforger.auth_backends.EmailOrUsernameModelBackend",
 ]
 
-LOGIN_URL = '/accounts/login'
-LOGIN_REDIRECT_URL = '/quizzes'
-LOGOUT_REDIRECT_URL = '/quizzes'
+LOGIN_URL = "/accounts/login"
+LOGIN_REDIRECT_URL = "/quizzes"
+LOGOUT_REDIRECT_URL = "/quizzes"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+LOG_LEVEL = os.environ.get("DJANGO_LOG_LEVEL", "INFO").upper()
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {
+        "request_context": {"()": "config.logging.RequestContextFilter"},
+    },
+    "formatters": {
+        "json": {"()": "config.logging.JsonFormatter"},
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "filters": ["request_context"],
+            "formatter": "json",
+        },
+    },
+    "root": {"handlers": ["console"], "level": LOG_LEVEL},
+    "loggers": {
+        "django": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+        "quizforger": {"handlers": ["console"], "level": LOG_LEVEL, "propagate": False},
+    },
+}
+
+
+SENTRY_DSN = os.environ.get("SENTRY_DSN", "").strip()
+if SENTRY_DSN:
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=os.environ.get(
+            "SENTRY_ENVIRONMENT", "production" if not DEBUG else "development"
+        ),
+        release=os.environ.get("SENTRY_RELEASE"),
+        send_default_pii=False,
+        traces_sample_rate=_env_float("SENTRY_TRACES_SAMPLE_RATE", 0.0),
+    )

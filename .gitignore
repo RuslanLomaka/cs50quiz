@@ -1,20 +1,31 @@
 # IDE
 .idea/
 .venv/
+.vscode/
 
 # Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+test-results/
 
 # System
 *.DS_Store
 
-# Local secrets and deployment output
+# Local state, secrets, and deployment output
 .env
 deployment/quizforger.env
 staticfiles/
+*.sqlite3
+*.sqlite3-*
+backups/
+logs/
+.deploy.lock
 
-# Migrations
- network/migrations
+# Keep Django migrations in version control.

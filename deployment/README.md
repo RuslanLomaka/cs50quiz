@@ -1,134 +1,195 @@
 # Raspberry Pi deployment with Cloudflare Tunnel
 
-This app should run behind a real WSGI server on the Pi. Do not expose Django's development server to the internet.
+This runbook keeps the application checkout disposable while storing the SQLite database and backups in persistent system directories. Gunicorn listens only on `127.0.0.1:8001`; Cloudflare Tunnel publishes the HTTPS hostname.
 
-## Assumptions
+The examples use Linux user `pi` and checkout `/home/pi/apps/cs50quiz`. Change both consistently if your host differs.
 
-- Raspberry Pi OS or another Debian-based Linux install.
-- The app will live at `/home/pi/apps/cs50quiz`.
-- Gunicorn listens only on `127.0.0.1:8001`.
-- Cloudflare Tunnel publishes the app hostname and forwards traffic to Gunicorn.
+## 1. Prepare persistent data directories
 
-If your Linux user is not `pi`, update `deployment/quizforger.service` before installing it.
-For example, with user `ruslan`, use `/home/ruslan/apps/cs50quiz` in `WorkingDirectory`, `EnvironmentFile`, and `ExecStart`.
+```bash
+sudo install -d -o pi -g www-data -m 0750 /var/lib/quizforger
+sudo install -d -o pi -g www-data -m 0750 /var/backups/quizforger
+```
 
-## 1. Clone and install the app
+### Existing deployment: move the database before pulling
+
+Older revisions tracked `db.sqlite3` inside the checkout. Stop the service and preserve it before a pull that removes the tracked file:
+
+```bash
+sudo systemctl stop quizforger
+cd /home/pi/apps/cs50quiz
+. .venv/bin/activate
+python - <<'PY'
+import sqlite3
+from pathlib import Path
+
+source = sqlite3.connect("file:db.sqlite3?mode=ro", uri=True)
+destination_path = Path("/var/backups/quizforger/pre-persistent-path.sqlite3")
+destination = sqlite3.connect(destination_path)
+source.backup(destination)
+destination.close()
+source.close()
+print(destination_path)
+PY
+cp --preserve=mode,timestamps /var/backups/quizforger/pre-persistent-path.sqlite3 /var/lib/quizforger/db.sqlite3
+chown pi:www-data /var/lib/quizforger/db.sqlite3
+chmod 0640 /var/lib/quizforger/db.sqlite3
+python - <<'PY'
+import sqlite3
+for path in ("/var/backups/quizforger/pre-persistent-path.sqlite3", "/var/lib/quizforger/db.sqlite3"):
+    with sqlite3.connect(path) as connection:
+        result = connection.execute("PRAGMA integrity_check").fetchone()[0]
+    if result != "ok":
+        raise SystemExit(f"Integrity check failed for {path}: {result}")
+    print(f"{path}: ok")
+PY
+```
+
+Do not delete the old file until the new deployment and a new managed backup have both been verified. Pull the new revision only after this step.
+
+## 2. Clone and install
 
 ```bash
 sudo apt update
 sudo apt install -y git python3-venv
-
 mkdir -p /home/pi/apps
 cd /home/pi/apps
 git clone https://github.com/RuslanLomaka/cs50quiz.git
 cd cs50quiz
-
 python3 -m venv .venv
 . .venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
-## 2. Configure production environment
+For an update, create and verify a backup first, then pull and install requirements again.
+
+## 3. Configure production
 
 ```bash
-cp deployment/quizforger.env.example .env
+if [ ! -f .env ]; then
+  cp deployment/quizforger.env.example .env
+  chmod 0600 .env
+fi
 python - <<'PY'
 from django.core.management.utils import get_random_secret_key
 print(get_random_secret_key())
 PY
 ```
 
-Edit `.env` and set:
+Edit `.env` and set the real secret, hostname, trusted HTTPS origin, database path, and backup directory. On an existing deployment, merge the new variables into the existing file; never replace its secret with the example. Keep `DJANGO_SECURE_HSTS_SECONDS=0` until HTTPS is confirmed. A production start fails closed if `DJANGO_SECRET_KEY` is absent.
 
-- `DJANGO_SECRET_KEY` to the generated value.
-- `DJANGO_ALLOWED_HOSTS` to your real Cloudflare hostname.
-- `DJANGO_CSRF_TRUSTED_ORIGINS` to `https://your-real-hostname`.
-- Leave `DJANGO_SECURE_HSTS_SECONDS=0` for the first deployment. After HTTPS is confirmed, you can raise it deliberately.
-
-Keep `.env` only on the Pi. It contains production secrets and is intentionally ignored by git.
-
-## 3. Prepare Django
+Prepare the application:
 
 ```bash
 . .venv/bin/activate
-python manage.py migrate
+set -a
+. ./.env
+set +a
+if [ -f /var/lib/quizforger/db.sqlite3 ]; then python manage.py check_database; fi
+python manage.py backup_database --if-exists --keep 30
+python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 python manage.py check --deploy
 ```
 
-Create an admin user if needed:
+Create an administrator when needed:
 
 ```bash
+set -a
+. ./.env
+set +a
 python manage.py createsuperuser
 ```
 
-## 4. Install the app service
+## 4. Install the application and backup services
 
 ```bash
 sudo cp deployment/quizforger.service /etc/systemd/system/quizforger.service
+sudo cp deployment/quizforger-backup.service /etc/systemd/system/quizforger-backup.service
+sudo cp deployment/quizforger-backup.timer /etc/systemd/system/quizforger-backup.timer
 sudo systemctl daemon-reload
 sudo systemctl enable --now quizforger
-sudo systemctl status quizforger
+sudo systemctl enable --now quizforger-backup.timer
+sudo systemctl start quizforger-backup.service
+sudo systemctl status quizforger quizforger-backup.timer
 ```
 
-Local health check:
+Verify the local application and the newest backup:
 
 ```bash
-curl -I http://127.0.0.1:8001/quizzes
+set -a
+. ./.env
+set +a
+curl --fail -H 'X-Forwarded-Proto: https' http://127.0.0.1:8001/healthz
+ls -l /var/backups/quizforger
+python manage.py check_database
 ```
 
-A `301 Moved Permanently` response is expected when `DJANGO_SECURE_SSL_REDIRECT=True`; the public Cloudflare URL should use HTTPS.
+The service creates a verified backup before each start. The timer also runs daily and retains the newest 30 snapshots. Copy snapshots to another device or encrypted remote storage; same-disk backups do not protect against disk failure or theft.
 
-## 5. Install and configure Cloudflare Tunnel
+## 5. Publish with Cloudflare Tunnel
 
-Install `cloudflared` using the current command shown in the Cloudflare dashboard or Cloudflare package repository for your Pi architecture.
+Install `cloudflared` using the current official instructions for the Pi architecture. If a healthy connector already exists, add a published application route:
 
-If you already have a healthy tunnel and connector for the Pi, reuse it. In Cloudflare Zero Trust, open the tunnel, go to **Published application routes**, and add:
+- hostname: the real quiz hostname
+- service type: `HTTP`
+- service URL: `localhost:8001`
 
-- Hostname: `quiz.example.com`
-- Path: leave empty
-- Service type: `HTTP`
-- Service URL: `localhost:8001`
-
-Cloudflare will create the DNS tunnel record automatically.
-
-Authenticate and create a named tunnel:
+For a new named tunnel:
 
 ```bash
 cloudflared tunnel login
 cloudflared tunnel create quizforger
-cloudflared tunnel list
-```
-
-Copy the example config and replace the UUID and hostname:
-
-```bash
 cp deployment/cloudflared-config.example.yml ~/.cloudflared/config.yml
-nano ~/.cloudflared/config.yml
-```
-
-Route DNS through Cloudflare:
-
-```bash
+# Replace the UUID and hostname in the copied file.
 cloudflared tunnel route dns quizforger quiz.example.com
-```
-
-Install and start the tunnel service:
-
-```bash
 sudo cloudflared --config /home/pi/.cloudflared/config.yml service install
 sudo systemctl start cloudflared
-sudo systemctl status cloudflared
 ```
 
-After this, open `https://quiz.example.com/quizzes`.
+After public HTTPS works, raise `DJANGO_SECURE_HSTS_SECONDS` deliberately (for example to `3600` first), restart QuizForger, and rerun `python manage.py check --deploy`.
 
-If Django returns `Bad Request (400)`, check that the public hostname is present in `DJANGO_ALLOWED_HOSTS`, then restart `quizforger`.
+## 6. Release an update manually
 
-## Operational notes
+After completing the initial installation and the restore drill, release later versions from the Pi with:
 
-- Keep inbound router ports closed. Cloudflare Tunnel only needs outbound connectivity.
-- Back up `db.sqlite3` before deploys if you keep SQLite in production.
-- For a public site with real users, plan a later move from SQLite to PostgreSQL.
-- Rotate the committed development `SECRET_KEY`; production must use `.env`.
+```bash
+cd /home/pi/apps/cs50quiz
+bash deployment/deploy-on-host.sh
+```
+
+The script rejects local checkout changes and concurrent runs. Before fetching code it creates an integrity-checked SQLite backup; it then permits only a fast-forward to `origin/main`, installs dependencies, applies migrations, builds static files, runs production checks, restarts the service, and verifies `/healthz`.
+
+## Restore drill
+
+Restoration is intentionally manual and requires downtime:
+
+```bash
+sudo systemctl stop quizforger
+cd /home/pi/apps/cs50quiz
+. .venv/bin/activate
+set -a
+. ./.env
+set +a
+python manage.py backup_database --if-exists --keep 30
+cp /var/backups/quizforger/CHOSEN_BACKUP.sqlite3 /var/lib/quizforger/db.sqlite3.restore
+python - <<'PY'
+import sqlite3
+path = "/var/lib/quizforger/db.sqlite3.restore"
+with sqlite3.connect(path) as connection:
+    result = connection.execute("PRAGMA integrity_check").fetchone()[0]
+if result != "ok":
+    raise SystemExit(f"Restore candidate failed integrity check: {result}")
+print("Restore candidate integrity: ok")
+PY
+mv /var/lib/quizforger/db.sqlite3.restore /var/lib/quizforger/db.sqlite3
+chown pi:www-data /var/lib/quizforger/db.sqlite3
+chmod 0640 /var/lib/quizforger/db.sqlite3
+python manage.py migrate --noinput
+python manage.py check_database
+sudo systemctl start quizforger
+curl --fail -H 'X-Forwarded-Proto: https' http://127.0.0.1:8001/healthz
+```
+
+Never restore over a running database. Keep the pre-restore backup until application behavior has been verified.
