@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.password_validation import validate_password
-
+from django.core.exceptions import ValidationError
 
 User = get_user_model()
 
@@ -40,7 +40,14 @@ class SignUpForm(forms.Form):
             self.add_error("password2", "The two password fields did not match.")
 
         if password1:
-            validate_password(password1)
+            candidate_user = User(
+                username=cleaned_data.get("email", ""),
+                email=cleaned_data.get("email", ""),
+            )
+            try:
+                validate_password(password1, user=candidate_user)
+            except ValidationError as exc:
+                self.add_error("password1", exc)
 
         return cleaned_data
 
@@ -61,5 +68,7 @@ class EmailAuthenticationForm(AuthenticationForm):
     password = forms.CharField(
         label="Password",
         strip=False,
-        widget=forms.PasswordInput(attrs={"class": "form-control", "autocomplete": "current-password"}),
+        widget=forms.PasswordInput(
+            attrs={"class": "form-control", "autocomplete": "current-password"}
+        ),
     )

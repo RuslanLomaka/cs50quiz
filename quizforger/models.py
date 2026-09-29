@@ -1,5 +1,6 @@
-﻿from django.conf import settings
+from django.conf import settings
 from django.db import models
+from django.db.models import F, Q
 
 
 class Quiz(models.Model):
@@ -15,9 +16,13 @@ class Quiz(models.Model):
     )
     created_at = models.DateTimeField()
     updated_at = models.DateTimeField()
+    archived_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at", "id"]
+        indexes = [
+            models.Index(fields=["archived_at", "-created_at"], name="quiz_active_created_idx"),
+        ]
 
     def __str__(self) -> str:
         return self.title
@@ -34,10 +39,22 @@ class Attempt(models.Model):
     )
     score = models.PositiveIntegerField()
     total = models.PositiveIntegerField()
+    submission_id = models.UUIDField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at", "id"]
+        constraints = [
+            models.CheckConstraint(condition=Q(total__gt=0), name="attempt_total_positive"),
+            models.CheckConstraint(
+                condition=Q(score__lte=F("total")), name="attempt_score_lte_total"
+            ),
+            models.UniqueConstraint(
+                fields=["quiz", "submission_id"],
+                condition=Q(submission_id__isnull=False),
+                name="attempt_unique_submission_per_quiz",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"{self.quiz_id}: {self.score}/{self.total}"

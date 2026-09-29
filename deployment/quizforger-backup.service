@@ -1,0 +1,18 @@
+[Unit]
+Description=Create a verified QuizForger database backup
+
+[Service]
+Type=oneshot
+User=quizforger
+Group=quizforger
+WorkingDirectory=/srv/quizforger/app
+EnvironmentFile=/etc/quizforger/quizforger.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/srv/quizforger/app/.venv/bin/python manage.py backup_database --keep 30
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/srv/quizforger/app /etc/quizforger/quizforger.env
+ReadWritePaths=/var/lib/quizforger /var/backups/quizforger

@@ -1,100 +1,32 @@
 import json
+import logging
+import uuid
 
 from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required
+from django.db import connection, transaction
 from django.db.models import Avg, Count, ExpressionWrapper, F, FloatField
 from django.http import Http404, HttpResponseBadRequest, HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
-from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_GET, require_http_methods
 
 from .forms import SignUpForm
-from .language import get_prompt_text, get_quiz_ui_text, get_request_language, get_ui_text, normalize_language
+from .language import (
+    get_prompt_text,
+    get_quiz_ui_text,
+    get_request_language,
+    get_ui_text,
+    normalize_language,
+)
 from .models import Attempt, Quiz, UserPreference
-from .storage import save_new_quiz, update_quiz
+from .quiz_schema import extract_quiz_json as _extract_quiz_json
+from .scoring import InvalidSubmission, public_quiz_payload, score_submission
+from .storage import archive_quiz, save_new_quiz, update_quiz
 
-
-def _extract_quiz_json(raw: str) -> dict:
-    # AI tools sometimes wrap the JSON in extra text, so we accept either
-    # a clean object or a complete quiz-shaped JSON object inside the pasted
-    # response. The decoder approach is safer than slicing from the first {
-    # to the last }, because post-JSON instructions may contain braces too.
-    raw = raw.strip()
-    if not raw:
-        raise ValueError("JSON is required")
-
-    decoder = json.JSONDecoder()
-    last_error = "Invalid JSON"
-
-    for index, char in enumerate(raw):
-        if char != "{":
-            continue
-
-        try:
-            data, _ = decoder.raw_decode(raw[index:])
-        except json.JSONDecodeError as exc:
-            last_error = "Invalid JSON"
-            continue
-
-        if isinstance(data, dict) and "questions" in data:
-            return _validate_quiz_json(data)
-
-        try:
-            return _validate_quiz_json(data)
-        except ValueError as exc:
-            last_error = str(exc)
-            continue
-
-    raise ValueError(last_error)
-
-
-def _validate_quiz_json(data: object) -> dict:
-    if not isinstance(data, dict):
-        raise ValueError("JSON must be an object")
-
-    if "questions" not in data or not isinstance(data["questions"], list):
-        raise ValueError("Missing 'questions' array")
-    if not data["questions"]:
-        raise ValueError("The quiz must contain at least one question")
-
-    if not isinstance(data.get("title"), str) or not data.get("title", "").strip():
-        data["title"] = "Untitled quiz"
-
-    for question_index, question in enumerate(data["questions"], start=1):
-        if not isinstance(question, dict):
-            raise ValueError(f"Question {question_index} must be an object")
-        if not isinstance(question.get("question"), str) or not question["question"].strip():
-            raise ValueError(f"Question {question_index} is missing question text")
-
-        answers = question.get("answers")
-        if not isinstance(answers, list) or len(answers) < 2:
-            raise ValueError(f"Question {question_index} must have at least 2 answers")
-
-        correct_count = 0
-        for answer_index, answer in enumerate(answers, start=1):
-            if not isinstance(answer, dict):
-                raise ValueError(f"Question {question_index}, answer {answer_index} must be an object")
-            if not isinstance(answer.get("text"), str) or not answer["text"].strip():
-                raise ValueError(f"Question {question_index}, answer {answer_index} is missing answer text")
-            if not isinstance(answer.get("correct"), bool):
-                raise ValueError(f"Question {question_index}, answer {answer_index} must use true or false for correct")
-            if answer["correct"]:
-                correct_count += 1
-
-        if correct_count == 0:
-            raise ValueError(f"Question {question_index} must have at least 1 correct answer")
-
-        sources = question.get("sources", [])
-        if sources is not None and not isinstance(sources, list):
-            raise ValueError(f"Question {question_index} sources must be an array")
-        if isinstance(sources, list):
-            for source_index, source in enumerate(sources, start=1):
-                if not isinstance(source, dict):
-                    raise ValueError(f"Question {question_index}, source {source_index} must be an object")
-
-    return data
+logger = logging.getLogger(__name__)
 
 
 def _quiz_stats(quiz: Quiz) -> dict:
@@ -118,19 +50,25 @@ def _quiz_stats(quiz: Quiz) -> dict:
 def _quiz_list_queryset():
     # Annotate the list view with aggregate stats up front to avoid per-row
     # queries while rendering.
-    return Quiz.objects.select_related("owner").annotate(
-        attempt_count=Count("attempts"),
-        average_percent=Avg(
-            ExpressionWrapper(F("attempts__score") * 100.0 / F("attempts__total"), output_field=FloatField())
-        ),
+    return (
+        Quiz.objects.filter(archived_at__isnull=True)
+        .select_related("owner")
+        .annotate(
+            attempt_count=Count("attempts"),
+            average_percent=Avg(
+                ExpressionWrapper(
+                    F("attempts__score") * 100.0 / F("attempts__total"), output_field=FloatField()
+                )
+            ),
+        )
     )
 
 
 def _get_quiz_or_404(quiz_id: str) -> Quiz:
     try:
-        return Quiz.objects.get(id=quiz_id)
-    except Quiz.DoesNotExist:
-        raise Http404("Quiz not found")
+        return Quiz.objects.get(id=quiz_id, archived_at__isnull=True)
+    except Quiz.DoesNotExist as exc:
+        raise Http404("Quiz not found") from exc
 
 
 def _can_edit_quiz(request, quiz: Quiz) -> bool:
@@ -195,6 +133,7 @@ def signup(request):
     return render(request, "registration/signup.html", {"form": form})
 
 
+@require_GET
 @ensure_csrf_cookie
 def quiz_page(request, quiz_id):
     language = get_request_language(request)
@@ -209,9 +148,18 @@ def quiz_page(request, quiz_id):
     )
 
 
+@require_GET
 def quiz_data(request, quiz_id):
     quiz = _get_quiz_or_404(quiz_id)
-    return JsonResponse(quiz.content, safe=False)
+    try:
+        payload = public_quiz_payload(quiz.content)
+    except ValueError:
+        logger.exception(
+            "stored_quiz_invalid",
+            extra={"event": "stored_quiz_invalid", "quiz_id": quiz.id},
+        )
+        return JsonResponse({"error": "Quiz data is invalid"}, status=500)
+    return JsonResponse(payload)
 
 
 @require_http_methods(["POST"])
@@ -221,46 +169,71 @@ def quiz_attempt_create(request, quiz_id):
     try:
         payload = json.loads(request.body or "{}")
     except json.JSONDecodeError:
-        return HttpResponseBadRequest("Invalid JSON")
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
 
     try:
-        score = int(payload.get("score"))
-        total = int(payload.get("total"))
-    except (TypeError, ValueError):
-        return HttpResponseBadRequest("Score and total must be integers")
+        result = score_submission(quiz.content, payload)
+    except (InvalidSubmission, ValueError) as exc:
+        logger.warning(
+            "attempt_rejected",
+            extra={"event": "attempt_rejected", "quiz_id": quiz.id, "reason": str(exc)},
+        )
+        return JsonResponse({"error": str(exc)}, status=400)
 
-    raw_answered_count = payload.get("answered_count")
-    if raw_answered_count in (None, ""):
-        # Keep older cached frontend code working during development.
-        answered_count = total
-    else:
-        try:
-            answered_count = int(raw_answered_count)
-        except (TypeError, ValueError):
-            return HttpResponseBadRequest("answered_count must be an integer")
+    response = {
+        "score": result.score,
+        "total": result.total,
+        "answered_count": result.answered_count,
+        "feedback": result.feedback,
+    }
+    if result.answered_count * 2 < result.total:
+        response.update(_quiz_stats(quiz))
+        response.update(
+            saved=False,
+            message="Attempt not counted because fewer than 50% of questions were answered.",
+        )
+        logger.info(
+            "attempt_not_counted",
+            extra={
+                "event": "attempt_not_counted",
+                "quiz_id": quiz.id,
+                "answered_count": result.answered_count,
+                "total": result.total,
+            },
+        )
+        return JsonResponse(response)
 
-    if total <= 0:
-        return HttpResponseBadRequest("Total must be greater than zero")
-    if score < 0 or score > total:
-        return HttpResponseBadRequest("Score must be between 0 and total")
-    if answered_count < 0 or answered_count > total:
-        return HttpResponseBadRequest("answered_count must be between 0 and total")
-
-    if answered_count * 2 < total:
-        # The quiz still returns feedback to the user, but it does not affect
-        # public stats unless they answered at least half the questions.
-        stats = _quiz_stats(quiz)
-        stats["saved"] = False
-        stats["message"] = "Attempt not counted because fewer than 50% of questions were answered."
-        return JsonResponse(stats)
+    try:
+        submission_id = uuid.UUID(str(payload.get("submission_id")))
+    except (TypeError, ValueError, AttributeError):
+        return JsonResponse({"error": "submission_id must be a valid UUID"}, status=400)
 
     user = request.user if request.user.is_authenticated else None
-    Attempt.objects.create(quiz=quiz, user=user, score=score, total=total)
+    with transaction.atomic():
+        _, created = Attempt.objects.get_or_create(
+            quiz=quiz,
+            submission_id=submission_id,
+            defaults={
+                "user": user,
+                "score": result.score,
+                "total": result.total,
+            },
+        )
 
-    stats = _quiz_stats(quiz)
-    stats["saved"] = True
-    stats["message"] = "Attempt saved."
-    return JsonResponse(stats)
+    response.update(_quiz_stats(quiz))
+    response["saved"] = created
+    response["message"] = "Attempt saved." if created else "This attempt was already recorded."
+    logger.info(
+        "attempt_recorded" if created else "attempt_duplicate",
+        extra={
+            "event": "attempt_recorded" if created else "attempt_duplicate",
+            "quiz_id": quiz.id,
+            "user_id": getattr(user, "id", None),
+            "score": result.score,
+            "total": result.total,
+        },
+    )
+    return JsonResponse(response)
 
 
 @require_http_methods(["GET", "POST"])
@@ -281,6 +254,10 @@ def quiz_new(request):
     try:
         data = _extract_quiz_json(raw)
     except ValueError as exc:
+        logger.warning(
+            "quiz_import_rejected",
+            extra={"event": "quiz_import_rejected", "user_id": request.user.id, "reason": str(exc)},
+        )
         return HttpResponseBadRequest(str(exc))
 
     quiz = save_new_quiz(data, owner=request.user)
@@ -309,6 +286,15 @@ def quiz_edit(request, quiz_id):
     try:
         data = _extract_quiz_json(raw)
     except ValueError as exc:
+        logger.warning(
+            "quiz_update_rejected",
+            extra={
+                "event": "quiz_update_rejected",
+                "quiz_id": quiz.id,
+                "user_id": request.user.id,
+                "reason": str(exc),
+            },
+        )
         return HttpResponseBadRequest(str(exc))
 
     quiz = update_quiz(quiz, data)
@@ -322,8 +308,20 @@ def quiz_delete(request, quiz_id):
     if not _can_edit_quiz(request, quiz):
         return HttpResponseForbidden("You are not allowed to delete this quiz")
 
-    quiz.delete()
+    archive_quiz(quiz, actor_id=request.user.id)
     return redirect("my_quizzes")
+
+
+@require_GET
+def healthz(request):
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+    except Exception:
+        logger.exception("healthcheck_failed", extra={"event": "healthcheck_failed"})
+        return JsonResponse({"status": "unhealthy"}, status=503)
+    return JsonResponse({"status": "ok"})
 
 
 @require_http_methods(["POST"])

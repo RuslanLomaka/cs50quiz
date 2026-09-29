@@ -1,7 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
 
-
 UserModel = get_user_model()
 
 
@@ -18,7 +17,9 @@ class EmailOrUsernameModelBackend(ModelBackend):
 
         # Then allow email login. Iterate safely in case older data contains
         # duplicate email addresses, which should not crash authentication.
-        for user in UserModel.objects.filter(email__iexact=login_value).order_by("-is_superuser", "id"):
+        for user in UserModel.objects.filter(email__iexact=login_value).order_by(
+            "-is_superuser", "id"
+        ):
             if user.check_password(password) and self.user_can_authenticate(user):
                 return user
 

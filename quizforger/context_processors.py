@@ -7,8 +7,7 @@ def language_context(request):
         "qf_language": language,
         "qf_language_label": LANGUAGE_LABELS[language],
         "qf_languages": [
-            {"code": code, "label": LANGUAGE_LABELS[code]}
-            for code in SUPPORTED_LANGUAGES
+            {"code": code, "label": LANGUAGE_LABELS[code]} for code in SUPPORTED_LANGUAGES
         ],
         "ui": get_ui_text(language),
     }
