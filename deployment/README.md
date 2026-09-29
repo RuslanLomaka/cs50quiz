@@ -173,6 +173,11 @@ Configure the published application route with:
 
 After public HTTPS works, raise `DJANGO_SECURE_HSTS_SECONDS` deliberately—start with `3600`—and restart QuizForger. Before later releases, use `31536000` only after HTTPS is proven stable and before enabling HSTS preload.
 
+The example environment acknowledges `security.W005` and `security.W021` because
+HSTS subdomain coverage and preload are deliberately disabled. This keeps every
+other deployment warning fatal without forcing HTTPS policy onto unrelated
+subdomains. Remove those check IDs if both settings are intentionally enabled.
+
 ## 6. Release an update manually
 
 The release script runs as `quizforger` but needs permission to restart only its own service. Confirm the `systemctl` path with `command -v systemctl`, then edit with `sudo visudo`:
