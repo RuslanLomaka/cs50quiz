@@ -20,7 +20,10 @@ def _clean_url(value):
         candidate = markdown_match.group(1)
     if len(candidate) > 2048 or any(ord(character) < 32 for character in candidate):
         return None
-    parsed = urlsplit(candidate)
+    try:
+        parsed = urlsplit(candidate)
+    except ValueError:
+        return None
     if (
         parsed.scheme.lower() not in {"http", "https"}
         or not parsed.hostname

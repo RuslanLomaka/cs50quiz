@@ -40,6 +40,7 @@ class HardeningMigrationTests(TransactionTestCase):
                                 "note": "Read this",
                             },
                             {"title": "Unsafe", "url": "javascript:alert(1)"},
+                            {"title": "Malformed", "url": "http://[invalid"},
                         ],
                     }
                 ],
