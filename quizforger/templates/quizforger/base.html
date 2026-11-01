@@ -13,7 +13,7 @@
             integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
             crossorigin="anonymous"
     />
-    <link href="{% static 'quizforger/app.css' %}?v=20260518-3" rel="stylesheet"/>
+    <link href="{% static 'quizforger/app.css' %}?v=20261101-1" rel="stylesheet"/>
 
     <script>
       (function () {
@@ -100,6 +100,12 @@
     {% endif %}
     {% block content %}{% endblock %}
 </main>
+
+<footer class="legal-footer">
+    <a href="{{ qf_imprint_url }}">{{ ui.imprint }}</a>
+    <span aria-hidden="true">·</span>
+    <a href="{% url 'privacy' %}">{{ ui.privacy }}</a>
+</footer>
 
 <script
         src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"

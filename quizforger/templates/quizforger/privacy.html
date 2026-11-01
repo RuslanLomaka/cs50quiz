@@ -1,0 +1,72 @@
+{% extends "quizforger/base.html" %}
+{% block title %}Datenschutzerklärung · QuizForger{% endblock %}
+{% block content %}
+<article class="legal-page" lang="de">
+    <h1 class="h3">Datenschutzerklärung</h1>
+    <p class="text-muted">für quiz.ruslanlomaka.org (QuizForger) · Stand: November 2026</p>
+
+    <h2 class="h5">1. Verantwortlicher</h2>
+    <p>Ruslan Lomaka. Anschrift und E-Mail-Adresse finden Sie im <a href="{{ qf_imprint_url }}">Impressum</a>.</p>
+
+    <h2 class="h5">2. Das Wichtigste in Kürze</h2>
+    <ul>
+        <li>Quizze spielen können Sie ohne Konto. Für das Erstellen von Quizzen brauchen Sie ein Konto mit E-Mail-Adresse und Passwort.</li>
+        <li>Wir nutzen keine Werbung, kein Tracking und keine Analyse-Werkzeuge und verschicken keine Newsletter.</li>
+        <li>Cookies setzen wir nur, soweit sie technisch nötig sind (Anmeldung, Sprache, Schutz von Formularen).</li>
+        <li>Die Gestaltung (Bootstrap) wird von jsDelivr geladen; dabei erhält dieser Anbieter Ihre IP-Adresse (siehe Punkt 9).</li>
+    </ul>
+
+    <h2 class="h5">3. Auslieferung über Cloudflare</h2>
+    <p>Die Seiten werden über das Netzwerk von Cloudflare ausgeliefert (Cloudflare, Inc., 101 Townsend St., San Francisco, CA 94107, USA). Dabei werden technisch notwendige Verbindungsdaten verarbeitet, insbesondere Ihre IP-Adresse, Datum und Uhrzeit des Abrufs, die aufgerufene Adresse sowie Angaben zu Browser und Betriebssystem. Das ist nötig, um die Seiten auszuliefern und die Website vor Angriffen zu schützen.</p>
+    <p>Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse ist eine sichere und zuverlässige Bereitstellung der Website. Cloudflare kann Daten auch in den USA verarbeiten. Cloudflare ist nach dem EU-US Data Privacy Framework zertifiziert; dafür gilt der Angemessenheitsbeschluss der EU-Kommission (Art. 45 DSGVO). Nur wenn Cloudflare eine Sicherheitsprüfung anzeigt, kann Cloudflare dafür ein technisch notwendiges Cookie setzen. Mehr dazu: <a href="https://www.cloudflare.com/de-de/privacypolicy/">Datenschutzerklärung von Cloudflare</a></p>
+
+    <h2 class="h5">4. Unser Server und seine Protokolle</h2>
+    <p>Die Anwendung läuft auf einem eigenen Server des Betreibers. Sie ist nur über Cloudflare erreichbar und sieht deshalb Ihre IP-Adresse nicht.</p>
+    <p>Der Server protokolliert Zugriffe: Zeitpunkt, aufgerufene Adresse, Statuscode, Datenmenge, verweisende Seite und Browserkennung (User-Agent) – ohne Ihre IP-Adresse. Die Anwendung protokolliert außerdem technische Ereignisse, zum Beispiel „Quiz erstellt“ oder „Ergebnis gespeichert“, mit der internen Nummer des Kontos und des Quiz. Diese Protokolle nutzen wir nur für Betrieb, Sicherheit und Fehlersuche (Art. 6 Abs. 1 lit. f DSGVO). Wir werten sie nicht für andere Zwecke aus und geben sie nicht weiter.</p>
+
+    <h2 class="h5">5. Ihr Konto</h2>
+    <p>Wenn Sie ein Konto anlegen, speichern wir:</p>
+    <ul>
+        <li>Ihre <strong>E-Mail-Adresse</strong> (sie ist zugleich Ihr Benutzername),</li>
+        <li>Ihr <strong>Passwort</strong> – nur als Hash (ein Prüfwert, aus dem man das Passwort nicht zurückrechnen kann), nie im Klartext,</li>
+        <li>den Zeitpunkt der <strong>Registrierung</strong> und der <strong>letzten Anmeldung</strong>,</li>
+        <li>Ihre gewählte <strong>Sprache</strong>.</li>
+    </ul>
+    <p>Wir brauchen diese Daten, um Ihnen das Konto bereitzustellen und Ihre Quizze Ihnen zuzuordnen (Art. 6 Abs. 1 lit. b DSGVO). Ihre E-Mail-Adresse wird anderen Besuchern nicht angezeigt, und wir schreiben Ihnen keine E-Mails.</p>
+
+    <h2 class="h5">6. Quizze und Ergebnisse</h2>
+    <ul>
+        <li><strong>Ihre Quizze</strong> sind für alle Besucher sichtbar. Als Autor steht dort nur „QuizForger member“, nicht Ihre E-Mail-Adresse. Schreiben Sie bitte keine persönlichen Daten in ein Quiz.</li>
+        <li>„Archivieren“ blendet ein Quiz aus; die Daten bleiben gespeichert. Auf Wunsch löschen wir es vollständig.</li>
+        <li><strong>Ergebnisse:</strong> Wenn Sie ein Quiz vollständig beantworten, speichern wir Punktzahl, Anzahl der Fragen und Zeitpunkt – mit Ihrem Konto verknüpft, wenn Sie angemeldet sind, sonst ohne Bezug zu einer Person. Öffentlich angezeigt werden nur die Zahl der Versuche und der Durchschnitt.</li>
+    </ul>
+    <p>Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (Ihre Nutzung des Angebots) und für die Statistik Art. 6 Abs. 1 lit. f DSGVO (unser Interesse, Quizze zu verbessern).</p>
+
+    <h2 class="h5">7. Cookies und Speicherung in Ihrem Browser</h2>
+    <ul>
+        <li><strong>sessionid</strong>: hält Ihre Anmeldung und die gewählte Sprache fest. Die Sprache wird beim ersten Besuch aus der Spracheinstellung Ihres Browsers übernommen. Gültig bis zu 2 Wochen; die zugehörigen Sitzungsdaten liegen auf unserem Server.</li>
+        <li><strong>csrftoken</strong>: schützt Formulare vor gefälschten Anfragen. Gültig bis zu 1 Jahr.</li>
+        <li><strong>quizforger-theme</strong> im „Local Storage“: helles oder dunkles Design, wenn Sie es umschalten. Wird nie an uns übertragen.</li>
+    </ul>
+    <p>Diese Speicherung ist für die von Ihnen genutzten Funktionen unbedingt erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG). Sie können Cookies und Website-Daten jederzeit in Ihrem Browser löschen; danach sind Sie abgemeldet.</p>
+
+    <h2 class="h5">8. Datensicherung</h2>
+    <p>Wir sichern die Datenbank einmal am Tag. Aufbewahrt werden die 30 neuesten Sicherungen. Gelöschte Daten sind deshalb spätestens nach etwa 30 Tagen auch aus den Sicherungen verschwunden.</p>
+
+    <h2 class="h5">9. Gestaltung über jsDelivr</h2>
+    <p>Für die Gestaltung lädt jede Seite die Dateien von Bootstrap vom Dienst jsDelivr (cdn.jsdelivr.net). Betreiber ist die Volentio JSD Limited (England und Wales). jsDelivr nutzt für die Auslieferung weitere Anbieter, auch außerhalb der EU; diese erhalten Ihre IP-Adresse, Browserangaben und die Adresse der geladenen Datei. jsDelivr setzt nach eigenen Angaben keine Cookies. Eine Prüfsumme stellt sicher, dass Ihr Browser nur unveränderte Dateien ausführt.</p>
+    <p>Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO. Unser berechtigtes Interesse ist eine schnelle und einheitliche Darstellung. Mehr dazu: <a href="https://www.jsdelivr.com/terms/privacy-policy-jsdelivr-net">Datenschutzerklärung von jsDelivr</a></p>
+
+    <h2 class="h5">10. Links zu anderen Websites</h2>
+    <p>Die Seite „Erstellen“ verlinkt auf ChatGPT, Gemini und Claude; außerdem gibt es Links zu GitHub und LinkedIn, und Quizze können Quellen verlinken. Erst wenn Sie einen Link anklicken, verlassen Sie diese Website; dort gelten die Datenschutzregeln des jeweiligen Anbieters. Wir übertragen keine Daten an diese Anbieter.</p>
+
+    <h2 class="h5">11. Speicherdauer und Löschung</h2>
+    <p>Ihre Kontodaten speichern wir, bis Sie das Konto löschen lassen. Schreiben Sie uns dazu eine E-Mail (Adresse im <a href="{{ qf_imprint_url }}">Impressum</a>). Wir löschen dann Ihr Konto; Ihre Quizze löschen wir auf Wunsch ebenfalls. Gespeicherte Ergebnisse bleiben nur ohne Bezug zu Ihrer Person für die Statistik erhalten.</p>
+
+    <h2 class="h5">12. Kontakt per E-Mail</h2>
+    <p>Wenn Sie uns eine E-Mail schreiben, verwenden wir Ihre Angaben nur, um Ihre Anfrage zu beantworten (Art. 6 Abs. 1 lit. f DSGVO), und löschen sie, wenn sie dafür nicht mehr gebraucht werden.</p>
+
+    <h2 class="h5">13. Ihre Rechte</h2>
+    <p>Sie haben das Recht auf Auskunft (Art. 15 DSGVO), Berichtigung (Art. 16 DSGVO), Löschung (Art. 17 DSGVO), Einschränkung der Verarbeitung (Art. 18 DSGVO), Datenübertragbarkeit (Art. 20 DSGVO) und Widerspruch gegen die Verarbeitung (Art. 21 DSGVO). Wenden Sie sich dafür an die im <a href="{{ qf_imprint_url }}">Impressum</a> genannte Adresse. Außerdem können Sie sich bei einer Datenschutz-Aufsichtsbehörde beschweren (Art. 77 DSGVO), zum Beispiel bei der Behörde Ihres Wohnorts.</p>
+</article>
+{% endblock %}

@@ -8,6 +8,7 @@ from .forms import EmailAuthenticationForm
 urlpatterns = [
     path("", lambda request: redirect("quizzes_list"), name="home"),
     path("healthz", views.healthz, name="healthz"),
+    path("datenschutz", views.privacy, name="privacy"),
     path("quizzes", views.quizzes_list, name="quizzes_list"),
     path("quizzes/mine", views.my_quizzes, name="my_quizzes"),
     path("quizzes/new", views.quiz_new, name="quiz_new"),

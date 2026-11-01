@@ -84,6 +84,29 @@ body::after {
   text-decoration: underline;
 }
 
+.legal-footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.75rem 1.5rem;
+  color: var(--app-muted);
+  font-size: 0.82rem;
+}
+
+.legal-footer a {
+  color: inherit;
+}
+
+.legal-page {
+  max-width: 46rem;
+}
+
+.legal-page h2 {
+  margin-top: 1.75rem;
+}
+
 .app-navbar {
   background: var(--app-navbar);
   backdrop-filter: blur(16px);
