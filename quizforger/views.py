@@ -313,6 +313,11 @@ def quiz_delete(request, quiz_id):
 
 
 @require_GET
+def privacy(request):
+    return render(request, "quizforger/privacy.html")
+
+
+@require_GET
 def healthz(request):
     try:
         with connection.cursor() as cursor:

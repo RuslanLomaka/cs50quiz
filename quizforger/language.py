@@ -70,6 +70,9 @@ UI_TEXT = {
         "confirm_password": "Confirm password",
         "already_have_account": "Already have an account?",
         "password_reset_roadmap": "Password reset by email is on the roadmap.",
+        "imprint": "Imprint",
+        "privacy": "Privacy policy",
+        "signup_privacy": "How we handle your data:",
     },
     "de": {
         "all_quizzes": "Alle Quizze",
@@ -132,6 +135,9 @@ UI_TEXT = {
         "confirm_password": "Passwort bestätigen",
         "already_have_account": "Du hast bereits ein Konto?",
         "password_reset_roadmap": "Passwort-Zurücksetzen per E-Mail steht auf der Roadmap.",
+        "imprint": "Impressum",
+        "privacy": "Datenschutz",
+        "signup_privacy": "Wie wir mit Ihren Daten umgehen:",
     },
     "uk": {
         "all_quizzes": "Усі тести",
@@ -194,6 +200,9 @@ UI_TEXT = {
         "confirm_password": "Підтвердити пароль",
         "already_have_account": "Уже маєш акаунт?",
         "password_reset_roadmap": "Скидання пароля через email є в планах.",
+        "imprint": "Impressum",
+        "privacy": "Конфіденційність",
+        "signup_privacy": "Як ми обробляємо ваші дані:",
     },
 }
 
